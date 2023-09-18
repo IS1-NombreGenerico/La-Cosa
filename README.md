@@ -12,7 +12,7 @@ Implementación sobre interfaz web del juego de cartas La Cosa.
 ```
 $ git clone https://github.com/IS1-NombreGenerico/La-Cosa.git
 $ cd La-Cosa
-$ virtualenv -p ${Path de tu python} ${Nombre del entorno virtual}
+$ python -m venv ${nombre entorno virtual}
 $ source Scripts/activate (En Windows: ./Scripts/activate)
 $ pip install -r requirements.txt
 ```
