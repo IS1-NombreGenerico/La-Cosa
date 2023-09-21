@@ -1,11 +1,11 @@
 from pony.orm import (Database, PrimaryKey, Required, Set, Optional)
-from enumerations import (Kind, Role, CardName)
+from enumerations import (Kind, Role)
 
 db = Database()
 
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(CardName)
+    name = Required(str) # name = Required(CardName)
     description = Required(str)
     kind = Required(Kind)
     required_players = Required(int)

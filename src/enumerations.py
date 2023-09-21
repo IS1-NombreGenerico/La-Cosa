@@ -1,13 +1,13 @@
 from enum import Enum
 
 class Kind(Enum):
-    THE_THING = 1
-    INFECTION = 2
-    ACTION = 3
-    DEFENSE = 4
-    OBSTACLE = 5
-    PANIC = 6
+    ACTION = 1
+    DEFENSE = 2
+    PANIC = 3
+    THETHING = 4
+    INFECTION = 5
 
+#class CardName(Enum):
 class Role(Enum):
     HUMAN = 1
     THING = 2
@@ -22,16 +22,16 @@ class CardName(str, Enum):
     SUSPICION = 'Sospecha'
     DETERMINATION = 'Determinación'
     WHISKY = 'Whisky'
-    SWAP_PLACES = '¡Cambio de lugar!'
+    SWAP_PLACES = 'Cambio de lugar!'
     WATCH_YOUR_BACK = 'Vigila tus espaldas'
     SEDUCTION = 'Seducción'
     BARRED_DOOR = 'Puerta atrancada'
-    YOU_BETTER_RUN = '¡Más vale que corras!'
+    YOU_BETTER_RUN = 'Más vale que corras!'
     IM_OK_HERE = 'Aquí estoy bien'
     TERRIFYING = "Aterrador"
-    NO_THANKS = '¡No, gracias!'
+    NO_THANKS = 'No, gracias...'
     YOU_MISSED = 'Fallaste!'
-    NO_BARBACUES = '¡Nada de barbacoas!'
+    NO_BARBACUES = 'Nada de barbacoas!'
     LOCKDOWN = 'Cuarentena'
     FULL_DISCLOSURE = 'Revelaciones'
     ROTTEN_ROPES = 'Cuerdas podridas'
