@@ -1,19 +1,23 @@
 from pony.orm import (Database, PrimaryKey, Required, Set, Optional)
-from enumerations import (Kind, Role)
+from enumerations import (Kind, Role, CardName)
 
 db = Database()
 
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str) # name = Required(CardName)
+    name = Required(CardName)
     description = Required(str)
+    discarded = Required(bool)
     kind = Required(Kind)
+    game = Required('Game', reverse="deck")
+    player = Required('Player', reverse="hand")
     required_players = Required(int)
 
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str)
-    game = Required('Game')
+    host = Optional("Game", reverse="host")
+    game = Required('Game', reverse="players")
     position = Required(int)
     role = Required(Role)
     is_dead = Required(bool)
@@ -25,7 +29,7 @@ class Player(db.Entity):
 class Game(db.Entity):
     id = PrimaryKey(int, auto=True) 
     name = Required(str)
-    host = Required(Player)
+    host = Required(Player, reverse="host")
     players = Set(Player)
     current_turn = Required(int)
     in_game = Required(bool)
@@ -35,7 +39,6 @@ class Game(db.Entity):
     min_players = Required(int)
     max_players = Required(int)
     deck = Set(Card)
-    discard = Set(Card)
     number_of_players = Required(int)
 
 
