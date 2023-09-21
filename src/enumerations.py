@@ -1,17 +1,16 @@
 from enum import Enum
 
-class Kind(Enum):
-    ACTION = 1
-    DEFENSE = 2
-    PANIC = 3
-    THETHING = 4
-    INFECTION = 5
+class Kind(str, Enum):
+    ACTION = "Acción"
+    DEFENSE = "Defensa"
+    PANIC = "¡Pánico!"
+    THETHING = "La Cosa"
+    INFECTION = "¡Infección!"
 
-#class CardName(Enum):
-class Role(Enum):
-    HUMAN = 1
-    THING = 2
-    INFECTED = 3
+class Role(str, Enum):
+    HUMAN = "Humano"
+    THING = "La Cosa"
+    INFECTED = "Infectado"
 
 class CardName(str, Enum):
     THE_THING = 'La Cosa'

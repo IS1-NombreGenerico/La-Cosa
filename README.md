@@ -2,6 +2,7 @@
 Implementación sobre interfaz web del juego de cartas La Cosa.
 
 ## Instalación
+Se necesitara previamente tener venv.
 
 1. Descargar el repositorio.
 2. Entrar a la carpeta descargada.
@@ -12,7 +13,7 @@ Implementación sobre interfaz web del juego de cartas La Cosa.
 ```
 $ git clone https://github.com/IS1-NombreGenerico/La-Cosa.git
 $ cd La-Cosa
-$ python -m venv ${nombre entorno virtual}
-$ source Scripts/activate (En Windows: ./Scripts/activate)
+$ python -m venv venv-LaCosa
+$ source venv-LaCosa/bin/activate
 $ pip install -r requirements.txt
 ```
