@@ -26,6 +26,7 @@ class Game(db.Entity):
     name = Required(str)
     password = Optional(str)
     host = Required(User)
+    in_game = Required(bool, default=False)
     min_players = Required(int, default=4)
     max_players = Required(int, default=12)
 
