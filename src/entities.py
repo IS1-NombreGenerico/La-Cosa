@@ -17,8 +17,12 @@ class User(db.Entity):
     """An User that can or nor host a game"""
     id = PrimaryKey(int, auto=True)
     name = Required(str)
-    #player = Optional("Player")
-    game = Optional("Game")
+    game = Optional("Game") # one-to-one relationship
+    player = Optional("Player") # one-to-one relationship
+    
+class Player(db.Entity):
+    user = Required("User") # one-to-one relationship reverse of User.user
+    game = Required("Game") # one-to-many relationship reverse of Game.players
 
 class Game(db.Entity):
     """A game that can be hosted by an User"""
@@ -27,8 +31,9 @@ class Game(db.Entity):
     password = Optional(str)
     host = Required(User)
     in_game = Required(bool, default=False)
-    min_players = Required(int, default=4)
-    max_players = Required(int, default=12)
+    min_players = Required(int, default=4, py_check = lambda x: x >= 4 and x <= 12)
+    max_players = Required(int, default=12, py_check = lambda x: x >= 4 and x <= 12)
+    players = Set("Player") # one-to-many relationship reverse of player.game
 
 """ class Player(db.Entity):
     id = PrimaryKey(int, auto=True)

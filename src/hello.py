@@ -15,8 +15,8 @@ async def create_game(form: CreateGameIn) -> GameInDB:
     """ Creates a new game
     Input: CreateGameIn
     --------
-    Output: GameSchema
-        A list of current games
+    Output: GameInDB
+        Schema based on the game data base model
     """
     with db_session:
         host_user = User(name=form.player_name)
@@ -28,9 +28,12 @@ async def create_game(form: CreateGameIn) -> GameInDB:
     return game_model
 
 @app.get("/game")
-async def show_games() -> List[GamesInfoOut]:
-    """
-    
+async def get_games() -> List[GamesInfoOut]:
+    """ Get the list of games available
+    Input: None
+    -------
+    Ouput: List[GamesInfoOut]
+        A list of current available games
     """
     with db_session:
         games = [GamesInfoOut(game_name=game.name, min_players=game.min_players, max_players=game.max_players) for game in select(g for g in Game if g.in_game == False)]
