@@ -23,3 +23,7 @@ class GameInDB(BaseModel):
     min_players: int
     max_players: int
     password: str | None = None
+
+class PlayerInDB(BaseModel):
+    user_id: int
+    game_id: int

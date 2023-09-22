@@ -21,6 +21,7 @@ class User(db.Entity):
     player = Optional("Player") # one-to-one relationship
     
 class Player(db.Entity):
+    id = PrimaryKey(int, auto=True)
     user = Required("User") # one-to-one relationship reverse of User.user
     game = Required("Game") # one-to-many relationship reverse of Game.players
 

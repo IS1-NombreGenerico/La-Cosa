@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from typing import List
 from pony.orm import db_session, select, flush
-from entities import (User, Game, db)
-from schemas import CreateGameIn, GamesInfoOut, GameInDB
+from entities import (User, Game, Player, db)
+from schemas import CreateGameIn, GamesInfoOut, GameInDB, PlayerInDB
 
 app = FastAPI()
 
@@ -21,6 +21,7 @@ async def create_game(form: CreateGameIn) -> GameInDB:
     with db_session:
         host_user = User(name=form.player_name)
         game = Game(name=form.game_name, password=form.password, host=host_user, min_players=form.min_players, max_players=form.max_players)
+        player = Player(user=host_user, game=game)
         flush()
         game_model = GameInDB(game_id=game.id, game_name=game.name, host_id=game.host.id, min_players=game.min_players, max_players=game.max_players, password=game.password)
         """ player = Player(name=form.player_name, user=host_user)
@@ -38,3 +39,15 @@ async def get_games() -> List[GamesInfoOut]:
     with db_session:
         games = [GamesInfoOut(game_name=game.name, min_players=game.min_players, max_players=game.max_players) for game in select(g for g in Game if g.in_game == False)]
     return games
+
+@app.get("/players")
+async def get_players() -> List[PlayerInDB]:
+    """ Get the list of games available
+    Input: None
+    -------
+    Ouput: List[PlayerInDB]
+        A list of current players games
+    """
+    with db_session:
+        players = [PlayerInDB(user_id=player.user.id, game_id=player.game.id) for player in select(g for g in Player)]
+    return players
