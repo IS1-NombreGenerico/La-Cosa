@@ -21,11 +21,14 @@ class User(db.Entity):
     game = Optional("Game")
 
 class Game(db.Entity):
+    """A game that can be hosted by an User"""
     id = PrimaryKey(int, auto=True)
     name = Required(str)
     password = Optional(str)
     host = Required(User)
-    
+    min_players = Required(int, default=4)
+    max_players = Required(int, default=12)
+
 """ class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str)
