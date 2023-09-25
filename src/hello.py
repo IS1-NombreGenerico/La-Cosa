@@ -16,7 +16,7 @@ async def create_game(form: CreateGameIn) -> CreateGameIn:
     return form
 
 @app.get("/join")
-async def list_availables_games() -> List[GameOut]:
+async def retrieve_availables_games() -> List[GameOut]:
 
     filter_by_availability = lambda g: g.number_of_players < g.max_players and not g.in_game
 
@@ -32,13 +32,13 @@ async def list_availables_games() -> List[GameOut]:
 
     return games
 
-@app.post("/join/{id_game}")
-async def join_game(id_game: int, player_info: PlayerIn) -> PlayerResponse:
+@app.post("/join", status_code=status.HTTP_201_CREATED)
+async def join_game(player_info: PlayerIn) -> PlayerResponse:
 
     if not player_info.player_name:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="EMPTY_NAME",
+            detail="EMPTY_NAME"
         )
 
     with db_session:
@@ -47,23 +47,23 @@ async def join_game(id_game: int, player_info: PlayerIn) -> PlayerResponse:
         
         if not db_game:
             raise HTTPException(
-                status_code=status.HTTP_408_INVALID_GAME,
-                detail="INVALID_GAME",
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="INVALID_GAME"
             )
         if db_game.in_game:
             raise HTTPException(
-                status_code=status.HTTP_409_GAME_IN_PROGRESS,
-                detail="GAME_IN_PROGRESS",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="GAME_IN_PROGRESS"
             )
         if db_game.number_of_players >= db_game.max_players:
             raise HTTPException(
-                status_code=status.HTTP_403_COMPLETE_QUOTE,
-                detail="COMPLETE_QUOTE",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="COMPLETE_QUOTE"
             )
         if db_game.password and db_game.password != player_info.password:
             raise HTTPException(
-                status_code=status.HTTP_407_INVALID_PASSWORD,
-                detail="INVALID_PASSWORD",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INVALID_PASSWORD"
             )
 
         p = Player(
@@ -80,7 +80,9 @@ async def join_game(id_game: int, player_info: PlayerIn) -> PlayerResponse:
         db_game.number_of_players += 1
         db_game.players.add(p)
 
-    return PlayerResponse(id=p.id)
+        player_response = db_player_2_player_out(db_player = db_player)
+
+    return player_response
 
 @app.delete("/{id_game}/{id_player}")
 async def leave_game(id_game: int, id_player: int) -> PlayerResponse:
@@ -92,18 +94,18 @@ async def leave_game(id_game: int, id_player: int) -> PlayerResponse:
 
         if not db_player:
             raise HTTPException(
-                status_code=status.HTTP_406_INVALID_PLAYER,
-                detail="INVALID_PLAYER",
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="INVALID_PLAYER"
             )
         if not db_game:
             raise HTTPException(
-                status_code=status.HTTP_408_INVALID_GAME,
-                detail="INVALID_GAME",
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="INVALID_GAME"
             )
         if db_game.host == db_player:
             raise HTTPException(
-                status_code=status.HTTP_401_IS_HOST,
-                detail="IS_HOST",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="IS_HOST"
             )
 
         db_player.delete()
