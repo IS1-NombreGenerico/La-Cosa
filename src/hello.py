@@ -1,21 +1,23 @@
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, status
-from pony.orm import db_session, select
+from pony.orm import db_session, select, flush
 from entities import Player, Game
+from enumerations import Role
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut
 from utils import db_game_2_game_out, db_player_2_player_out
 
 app = FastAPI()
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.post("/game")
-async def create_game(form: CreateGameIn) -> CreateGameIn:
+@app.post("/game", status_code=status.HTTP_201_CREATED)
+async def create_game(form: CreateGameIn) -> CreateGameResponse:
     with db_session:
-        game = Game(name=form.game_name, host=Player(name=form.player_name), min_players=form.min_players, max_players=form.max_players, password=form.password)
-    return form
+        host = Player(name=form.player_name)
+        flush()
+        game = Game(name=form.game_name, host=host, min_players=form.min_players, max_players=form.max_players, password=form.password)
+        host.host = game
+        flush()
+        response = CreateGameResponse(id=game.id, host_id=game.host.id)
+    return response
 
 @app.get("/join")
 async def retrieve_availables_games() -> List[GameOut]:
@@ -72,7 +74,7 @@ async def join_game(player_info: PlayerIn) -> PlayerResponse:
             name = player_info.player_name,
             game = db_game,
             position = db_game.number_of_players,
-            role = HUMAN,
+            role = Role.HUMAN,
             is_dead = False,
             in_lockdown = False,
             left_barrier = False,

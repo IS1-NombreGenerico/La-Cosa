@@ -17,7 +17,7 @@ class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str)
     host = Optional("Game", reverse="host")
-    game = Required('Game', reverse="players")
+    game = Optional('Game')
     position = Required(int, default=0)
     role = Required(Role, default=Role.HUMAN)
     is_dead = Required(bool, default=False)

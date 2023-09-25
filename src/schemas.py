@@ -11,6 +11,7 @@ class CreateGameIn(BaseModel):
 # Game creation response
 class CreateGameResponse(BaseModel):
     id: int
+    host_id: int
 
 # Outbound game
 class GameOut(BaseModel):
@@ -34,4 +35,5 @@ class PlayerOut(BaseModel):
     id: int
     game_id: str
     player_name: str
+
 
