@@ -3,6 +3,7 @@ from enum import Enum
 class Kind(str, Enum):
     ACTION = "Acción"
     DEFENSE = "Defensa"
+    OBSTACLE = "Obstáculo"
     PANIC = "¡Pánico!"
     THETHING = "La Cosa"
     INFECTION = "¡Infección!"
