@@ -36,10 +36,10 @@ class Game(db.Entity):
     is_done = Required(bool, default=False)
     password = Optional(str)
     going_clockwise = Required(bool, default=True)
-    min_players = Required(int)
-    max_players = Required(int)
+    min_players = Required(int, default=4, py_check=lambda x: x >= 4 and x <= 12)
+    max_players = Required(int, default=12, py_check=lambda x: x >= 4 and x <= 12)
     deck = Set(Card)
-    number_of_players = Required(int, default=0)
+    number_of_players = Required(int, default=1)
 
 
 db.bind('sqlite', 'example.sqlite', create_db=True)
