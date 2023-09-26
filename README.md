@@ -17,3 +17,14 @@ $ python -m venv venv-LaCosa
 $ source venv-LaCosa/bin/activate
 $ pip install -r requirements.txt
 ```
+
+## Correr tests
+
+1. Eliminar la base de datos si la hay
+2. Correr los tests respectivos con `mark` de pytest
+
+Ejemplo con `mark` integration_test
+```
+$ rm *.sqlite3
+$ pytest -v -m integration_test
+```
