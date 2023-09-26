@@ -8,7 +8,7 @@ from utils import db_game_2_game_out, db_player_2_player_out
 
 app = FastAPI()
 
-@app.post("/game", status_code=status.HTTP_201_CREATED)
+@app.post("/", status_code=status.HTTP_201_CREATED)
 async def create_game(form: CreateGameIn) -> CreateGameResponse:
     """ Creates a new game
     Input: CreateGameIn
@@ -109,8 +109,8 @@ async def join_game(player_info: PlayerIn) -> PlayerResponse:
 
     return player_response
 
-@app.delete("/{id_game}/{id_player}")
-async def leave_game(id_game: int, id_player: int) -> PlayerResponse:
+@app.delete("/{id_game}")
+async def leave_game(id_game: int, id_player: int): #falta modificar
 
     with db_session:
     
