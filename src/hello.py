@@ -10,6 +10,12 @@ app = FastAPI()
 
 @app.post("/game", status_code=status.HTTP_201_CREATED)
 async def create_game(form: CreateGameIn) -> CreateGameResponse:
+    """ Creates a new game
+    Input: CreateGameIn
+    --------
+    Output: CreateGameResponse
+        Information about the game and host
+    """
     if form.min_players > form.max_players or form.min_players < 4 or form.max_players > 12:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -26,7 +32,12 @@ async def create_game(form: CreateGameIn) -> CreateGameResponse:
 
 @app.get("/join")
 async def retrieve_availables_games() -> List[GameOut]:
-
+    """ Get the list of games available
+    Input: None
+    -------
+    Ouput: List[GameOut]
+        A list of current available games
+    """
     filter_by_availability = lambda g: g.number_of_players < g.max_players and not g.in_game
 
     with db_session:
@@ -43,7 +54,12 @@ async def retrieve_availables_games() -> List[GameOut]:
 
 @app.post("/join", status_code=status.HTTP_201_CREATED)
 async def join_game(player_info: PlayerIn) -> PlayerResponse:
-
+    """ Join a game
+    Input: PlayerIn
+    -------
+    Output: PlayerResponse
+        
+    """
     if not player_info.player_name:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
