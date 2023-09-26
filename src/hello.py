@@ -52,7 +52,7 @@ async def retrieve_availables_games() -> List[GameOut]:
 
     return games
 
-@app.post("/join", status_code=status.HTTP_201_CREATED)
+@app.post("/join/{game_id}", status_code=status.HTTP_201_CREATED)
 async def join_game(player_info: PlayerIn) -> PlayerResponse:
     """ Join a game
     Input: PlayerIn
@@ -68,7 +68,7 @@ async def join_game(player_info: PlayerIn) -> PlayerResponse:
 
     with db_session:
         
-        db_game = select(g for g in Game if g.id == id).first()
+        db_game = select(g for g in Game if g.id == game_id).first()
         
         if not db_game:
             raise HTTPException(

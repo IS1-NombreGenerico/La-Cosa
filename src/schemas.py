@@ -27,7 +27,7 @@ class GameOut(BaseModel):
 class PlayerIn(BaseModel):
     """Inbound player"""
     player_name: str
-    game_id: str
+    game_id: int
     password: str | None = None
 
 # Player creation response
