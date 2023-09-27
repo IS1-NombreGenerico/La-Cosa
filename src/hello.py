@@ -16,17 +16,18 @@ async def create_game(form: CreateGameIn) -> CreateGameResponse:
     Output: CreateGameResponse
         Information about the game and host
     """
-    if form.min_players > form.max_players or form.min_players < 4 or form.max_players > 12:
-        raise HTTPException(
+    with db_session:
+        try:
+            host = Player(name=form.player_name)
+            flush()
+            game = Game(name=form.game_name, host=host, 
+            min_players=form.min_players, max_players=form.max_players, password=form.password)
+            host.game = game
+            flush()
+        except: raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="INVALID_SETTINGS"
         )
-    with db_session:
-        host = Player(name=form.player_name)
-        flush()
-        game = Game(name=form.game_name, host=host, min_players=form.min_players, max_players=form.max_players, password=form.password)
-        host.game = game
-        flush()
         response = CreateGameResponse(id=game.id, host_id=game.host.id)
     return response
 
