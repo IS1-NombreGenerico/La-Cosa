@@ -11,4 +11,4 @@ env.bak/
 venv.bak/
 
 # Data Base
-example.sqlite
+*.sqlite
