@@ -22,12 +22,12 @@ class GameOut(BaseModel):
     min_players: int
     max_players: int
     password: str | None = None
+    number_of_players: int
 
 # Inbound player
 class PlayerIn(BaseModel):
     """Inbound player"""
     player_name: str
-    game_id: int
     password: str | None = None
 
 # Player creation response

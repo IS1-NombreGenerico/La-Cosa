@@ -1,9 +1,15 @@
 import pytest
 from fastapi.testclient import TestClient
-
 from hello import app
 
 client = TestClient(app)
+
+@pytest.mark.integration_test
+def test_retrieve_availables_games_empty():
+    response = client.get("/join")
+    assert response.status_code == 200
+    assert response.json() == []
+
 
 @pytest.mark.integration_test
 def test_create_game_success():
@@ -17,6 +23,7 @@ def test_create_game_success():
     assert response.status_code == 201
     assert response.json() == {"id": 1, "host_id": 1}
 
+
 @pytest.mark.integration_test
 def test_create_game_failure():
     response = client.post("/", json={
@@ -29,6 +36,22 @@ def test_create_game_failure():
     assert response.status_code == 400
     assert response.json() == {"detail": "INVALID_SETTINGS"}
 
+
+@pytest.mark.integration_test
+def test_retrieve_availables_games_with_one_game():
+    response = client.get("/join")
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": 1,
+            "min_players": 4,
+            "max_players": 6,
+            "password": "password",
+            "number_of_players": 1
+        },
+    ]
+
+
 @pytest.mark.integration_test
 def test_create_game_nopassword():
     response = client.post("/", json={
@@ -40,3 +63,54 @@ def test_create_game_nopassword():
     })
     assert response.status_code == 201
     assert response.json() == {"id": 2, "host_id": 2}
+
+
+@pytest.mark.integration_test
+def test_retrieve_availables_games_with_two_games():
+    response = client.get("/join")
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": 1,
+            "min_players": 4,
+            "max_players": 6,
+            "password": "password",
+            "number_of_players": 1
+        },
+        {
+            "id": 2,
+            "min_players": 4,
+            "max_players": 6,
+            "password": "",
+            "number_of_players": 1
+        }
+    ]
+
+
+@pytest.mark.integration_test
+def test_join_game_success():
+    response = client.post("/join/1", json={
+        "player_name": "Player B",
+        "password": "password"
+    })
+    assert response.status_code == 201
+    assert response.json() == {"id": 3}
+
+
+@pytest.mark.integration_test
+def test_join_game_failure():
+    response = client.post("/join/1", json={
+        "player_name": "Player C",
+        "password": "wrongpassword"
+    })
+    assert response.status_code == 400
+    assert response.json() == {"detail": "INVALID_PASSWORD"}
+
+@pytest.mark.integration_test
+def join_game_no_password():
+    response = client.post("/join/2", json={
+        "player_name": "Player D",
+        "password": ""
+    })
+    assert response.status_code == 201
+    assert response.json() == {"id": 4}

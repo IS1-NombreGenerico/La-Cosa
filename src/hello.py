@@ -4,7 +4,7 @@ from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut
-from utils import db_game_2_game_out, db_player_2_player_out
+from utils import db_game_2_game_out
 
 app = FastAPI()
 
@@ -16,18 +16,17 @@ async def create_game(form: CreateGameIn) -> CreateGameResponse:
     Output: CreateGameResponse
         Information about the game and host
     """
-    with db_session:
-        try:
-            host = Player(name=form.player_name)
-            flush()
-            game = Game(name=form.game_name, host=host, 
-            min_players=form.min_players, max_players=form.max_players, password=form.password)
-            host.game = game
-            flush()
-        except: raise HTTPException(
+    if form.min_players > form.max_players or form.min_players < 4 or form.max_players > 12:
+        raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="INVALID_SETTINGS"
         )
+    with db_session:
+        host = Player(name=form.player_name)
+        flush()
+        game = Game(name=form.game_name, host=host, min_players=form.min_players, max_players=form.max_players, password=form.password)
+        host.game = game
+        flush()
         response = CreateGameResponse(id=game.id, host_id=game.host.id)
     return response
 
@@ -54,7 +53,7 @@ async def retrieve_availables_games() -> List[GameOut]:
     return games
 
 @app.post("/join/{game_id}", status_code=status.HTTP_201_CREATED)
-async def join_game(player_info: PlayerIn) -> PlayerResponse:
+async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
     """ Join a game
     Input: PlayerIn
     -------
@@ -92,23 +91,14 @@ async def join_game(player_info: PlayerIn) -> PlayerResponse:
                 detail="INVALID_PASSWORD"
             )
 
-        p = Player(
-            name = player_info.player_name,
-            game = db_game,
-            position = db_game.number_of_players,
-            role = Role.HUMAN,
-            is_dead = False,
-            in_lockdown = False,
-            left_barrier = False,
-            right_barrier = False,
-        )
+        p = Player(name = player_info.player_name, game = db_game, position = db_game.number_of_players)
 
         db_game.number_of_players += 1
-        db_game.players.add(p)
+        flush()
 
-        player_response = db_player_2_player_out(db_player = db_player)
+        response = PlayerResponse(id=p.id)
 
-    return player_response
+    return response
 
 @app.delete("/{id_game}")
 async def leave_game(id_game: int, id_player: int): #falta modificar
