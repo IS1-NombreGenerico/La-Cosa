@@ -1,8 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
 from hello import app
+from config import databasename
 
 client = TestClient(app)
+databasename = "test.sqlite"
 
 @pytest.mark.integration_test
 def test_retrieve_availables_games_empty():

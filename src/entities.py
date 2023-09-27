@@ -1,5 +1,6 @@
 from pony.orm import (Database, PrimaryKey, Required, Set, Optional)
 from enumerations import (Kind, Role, CardName)
+import config
 
 db = Database()
 
@@ -42,5 +43,5 @@ class Game(db.Entity):
     number_of_players = Required(int, default=1)
 
 
-db.bind('sqlite', 'example.sqlite', create_db=True)
+db.bind(config.database, config.databasename, create_db=True)
 db.generate_mapping(create_tables=True)
