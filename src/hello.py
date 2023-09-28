@@ -1,5 +1,6 @@
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role
@@ -7,6 +8,15 @@ from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerR
 from utils import db_game_2_game_out
 
 app = FastAPI()
+
+origins = ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/", status_code=status.HTTP_201_CREATED)
 async def create_game(form: CreateGameIn) -> CreateGameResponse:
@@ -16,6 +26,11 @@ async def create_game(form: CreateGameIn) -> CreateGameResponse:
     Output: CreateGameResponse
         Information about the game and host
     """
+    if form.min_players > form.max_players:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="INVALID_SETTINGS"
+        )
     with db_session:
         try:
             host = Player(name=form.player_name)
