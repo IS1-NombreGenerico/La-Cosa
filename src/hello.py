@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut
-from utils import db_game_2_game_out
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB
+from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema
 
 app = FastAPI()
 
@@ -35,9 +35,10 @@ async def create_game(form: CreateGameIn) -> CreateGameResponse:
         try:
             host = Player(name=form.player_name)
             flush()
-            game = Game(name=form.game_name, host=host, 
+            game = Game(name=form.game_name, host=host, players=[host], 
             min_players=form.min_players, max_players=form.max_players, password=form.password)
             host.game = game
+            host.host = game
             flush()
         except: raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -108,7 +109,7 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
             )
 
         p = Player(name = player_info.player_name, game = db_game, position = db_game.number_of_players)
-
+        
         db_game.number_of_players += 1
         flush()
 
@@ -144,3 +145,39 @@ async def leave_game(id_game: int, id_player: int): #falta modificar
         db_game.number_of_players -= 1
 
     return PlayerResponse(id=id)
+
+@app.get("/game/{player_id}")
+async def get_player_info(player_id: int) -> PlayerInDB:
+    """Returns Player information
+    Input: player_id
+    --------
+    Ouput: PlayerInDB
+        Player Information
+    """
+    with db_session:
+        db_player = select(p for p in Player if p.id == player_id).first()
+        if not db_player:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="INVALID_PLAYER"
+            )
+        player = db_player_2_player_schema(db_player)
+    return player
+
+@app.get("/game/{game_id}")
+async def get_game_info(game_id: int) -> GameInDB:
+    """Returns Game information
+    Input: game_id
+    ---------
+    Output: GameInDB
+        Information about the game
+    """
+    with db_session:
+        db_game = select(g for g in Game if g.id == game_id).first()
+        if not db_game:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="INVALID_GAME"
+            )
+        game = db_game_2_game_schema(db_game)
+        return game

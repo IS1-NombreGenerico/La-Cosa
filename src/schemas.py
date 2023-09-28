@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List, Optional
 
 # Create Game Form
 class CreateGameIn(BaseModel):
@@ -42,4 +43,29 @@ class PlayerOut(BaseModel):
     game_id: str
     player_name: str
 
+class PlayerInDB(BaseModel):
+    """Player in database"""
+    player_id: int
+    name: str
+    postition: int
+    role: str
+    is_dead: bool
+    in_lockdown: bool
+    left_barrier: bool
+    right_barrier: bool
+
+class GameInDB(BaseModel):
+    """Game in database"""
+    game_id: int
+    name: str
+    host: int
+    current_turn: int
+    players: List[PlayerInDB]
+    in_game: bool
+    is_done: bool
+    password: str
+    going_clockwise: bool
+    min_players: int
+    max_players: int
+    number_of_players: int
 
