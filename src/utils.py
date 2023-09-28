@@ -1,5 +1,6 @@
 from entities import Game, Player
 from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB
+from typing import List
 
 def db_player_2_player_out(db_player: Player) -> PlayerOut:
 
@@ -19,7 +20,7 @@ def db_game_2_game_out(db_game: Game) -> GameOut:
         number_of_players=db_game.number_of_players,
     )
 
-def db_game_2_game_schema(db_game: Game) -> GameInDB:
+def db_game_2_game_schema(db_game: Game, players) -> GameInDB:
     
         return GameInDB(
             game_id=db_game.id,
@@ -27,6 +28,7 @@ def db_game_2_game_schema(db_game: Game) -> GameInDB:
             host=db_game.host.id,
             current_turn=db_game.current_turn,
             in_game=db_game.in_game,
+            players=players,
             is_done=db_game.is_done,
             password=db_game.password,
             going_clockwise=db_game.going_clockwise,

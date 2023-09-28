@@ -146,7 +146,7 @@ async def leave_game(id_game: int, id_player: int): #falta modificar
 
     return PlayerResponse(id=id)
 
-@app.get("/game/{player_id}")
+@app.get("/player/{player_id}")
 async def get_player_info(player_id: int) -> PlayerInDB:
     """Returns Player information
     Input: player_id
@@ -179,5 +179,6 @@ async def get_game_info(game_id: int) -> GameInDB:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="INVALID_GAME"
             )
-        game = db_game_2_game_schema(db_game)
+        players = [db_player_2_player_schema(p) for p in db_game.players]
+        game = db_game_2_game_schema(db_game, players)
         return game
