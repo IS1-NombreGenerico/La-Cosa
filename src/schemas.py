@@ -16,6 +16,11 @@ class CreateGameResponse(BaseModel):
     id: int
     host_id: int
 
+# Inbound start game
+class GameStart(BaseModel):
+    id_player : int
+    id_game : int
+
 # Outbound game
 class GameOut(BaseModel):
     """Outbound game"""

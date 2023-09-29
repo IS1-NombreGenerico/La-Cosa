@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB
-from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameStart
+from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema, validate_game, validate_player, shuffle_and_assign_positions, create_deck
 
 app = FastAPI()
 
@@ -115,34 +115,25 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
 
     return response
 
-@app.delete("/{id_game}")
-async def leave_game(id_game: int, id_player: int): #falta modificar
+@app.delete("/{id_game}/game", status_code=status.HTTP_201_CREATED)
+async def leave_game(game_info: GameStart) -> bool:
 
     with db_session:
-    
-        db_player = select(p for p in Player if p.id == id).first()
-        db_game = select(g for g in Game if g.id == id).first()
+        game = validate_game(game_info.id_game)
 
-        if not db_player:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="INVALID_PLAYER"
-            )
-        if not db_game:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="INVALID_GAME"
-            )
-        if db_game.host == db_player:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="IS_HOST"
-            )
+        if game.host.id == game_info.id_player:
+            players_of_game = Player.select(lambda p: p.game.id == game_info.id_game)
+            for player in players_of_game:
+                player.delete()
+            game.delete()
+            game_deleted = True
+        else:
+            player = validate_player(game_info.id_player)
+            player.delete()
+            game.number_of_players -= 1
+            game_deleted = False
 
-        db_player.delete()
-        db_game.number_of_players -= 1
-
-    return PlayerResponse(id=id)
+        return game_deleted
 
 @app.get("/player/{player_id}")
 async def get_player_info(player_id: int) -> PlayerInDB:
@@ -180,3 +171,30 @@ async def get_game_info(game_id: int) -> GameInDB:
         players = [db_player_2_player_schema(p) for p in db_game.players]
         game = db_game_2_game_schema(db_game, players)
         return game
+
+
+@app.patch("/{id_game}/game", status_code=status.HTTP_201_CREATED)
+async def start_game(game_info: GameStart) -> bool:
+    with db_session:
+        player = validate_player(game_info.id_player)
+        game = validate_game(game_info.id_game)
+        
+        if len(game.players) < game.min_players:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INSUFFICIENT_PLAYERS"
+            )
+
+        if player != game.host:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INVALID_ACTION"
+            )
+        
+        game.in_game = True
+        game.number_of_players = len(game.players)
+
+        outplayers = shuffle_and_assign_positions(game.players)
+        create_deck(game.id)
+        
+        return True

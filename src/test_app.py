@@ -27,6 +27,16 @@ def test_create_game_success():
 
 
 @pytest.mark.integration_test
+def test_start_game_failure():
+    response = client.patch("/{id_game}/game", json={
+        "id_player" : 1,
+        "id_game" : 1
+    })
+    assert response.status_code == 400
+    assert response.json() == {"detail": "INSUFFICIENT_PLAYERS"}
+
+
+@pytest.mark.integration_test
 def test_create_game_failure():
     response = client.post("/", json={
         "game_name": "Game b",
@@ -109,10 +119,65 @@ def test_join_game_failure():
     assert response.json() == {"detail": "INVALID_PASSWORD"}
 
 @pytest.mark.integration_test
-def join_game_no_password():
+def test_join_game_no_password():
     response = client.post("/join/2", json={
         "player_name": "Player D",
         "password": ""
     })
     assert response.status_code == 201
     assert response.json() == {"id": 4}
+
+
+@pytest.mark.integration_test
+def test_leave_player_no_host_game():
+    response = client.request("DELETE", "/{id_game}/game", json={
+        "id_player" : 4,
+        "id_game" : 2
+    })
+    assert response.status_code == 201
+    
+
+@pytest.mark.integration_test
+def test_verification_delete1():
+    response = client.get("/join")
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": 1,
+            "min_players": 4,
+            "max_players": 6,
+            "password": "password",
+            "number_of_players": 2
+        },
+        {
+            "id": 2,
+            "min_players": 4,
+            "max_players": 6,
+            "password": "",
+            "number_of_players": 1
+        }
+    ]
+
+
+@pytest.mark.integration_test
+def test_leave_single_player_game():
+    response = client.request("DELETE", "/{id_game}/game", json={
+        "id_player" : 1,
+        "id_game" : 1
+    })
+    assert response.status_code == 201
+
+
+@pytest.mark.integration_test
+def test_verification_delete2():
+    response = client.get("/join")
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": 2,
+            "min_players": 4,
+            "max_players": 6,
+            "password": "",
+            "number_of_players": 1
+        }
+    ]

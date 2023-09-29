@@ -11,13 +11,13 @@ class Card(db.Entity):
     discarded = Required(bool, default=False)
     kind = Required(Kind, default=Kind.ACTION)
     game = Required('Game', reverse="deck")
-    player = Required('Player', reverse="hand")
+    player = Optional('Player', reverse="hand")
     required_players = Required(int, default=0)
 
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str)
-    host = Optional("Game", reverse="host")
+    host = Optional("Game", reverse="host", cascade_delete=True)
     game = Optional('Game')
     position = Required(int, default=0)
     role = Required(Role, default=Role.HUMAN)
