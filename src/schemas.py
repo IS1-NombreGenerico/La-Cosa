@@ -47,6 +47,7 @@ class PlayerInDB(BaseModel):
     """Player in database"""
     player_id: int
     name: str
+    game_id: int
     postition: int
     role: str
     is_dead: bool

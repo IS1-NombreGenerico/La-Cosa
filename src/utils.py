@@ -42,6 +42,7 @@ def db_player_2_player_schema(db_player: Player) -> PlayerInDB:
     return PlayerInDB(
         player_id=db_player.id, 
         name=db_player.name, 
+        game_id=db_player.game.id,
         postition=db_player.position, 
         role=db_player.role, 
         is_dead=db_player.is_dead, 

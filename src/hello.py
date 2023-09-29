@@ -37,8 +37,6 @@ async def create_game(form: CreateGameIn) -> CreateGameResponse:
             flush()
             game = Game(name=form.game_name, host=host, players=[host], 
             min_players=form.min_players, max_players=form.max_players, password=form.password)
-            host.game = game
-            host.host = game
             flush()
         except: raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
