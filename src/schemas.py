@@ -25,6 +25,7 @@ class GameStart(BaseModel):
 class GameOut(BaseModel):
     """Outbound game"""
     id: int
+    name: str
     min_players: int
     max_players: int
     password: str | None = None

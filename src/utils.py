@@ -18,6 +18,7 @@ def db_game_2_game_out(db_game: Game) -> GameOut:
 
     return GameOut(
         id=db_game.id,
+        name=db_game.name,
         min_players=db_game.min_players,
         max_players=db_game.max_players,
         password=db_game.password,

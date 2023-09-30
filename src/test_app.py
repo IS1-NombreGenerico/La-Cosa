@@ -56,6 +56,7 @@ def test_retrieve_availables_games_with_one_game():
     assert response.json() == [
         {
             "id": 1,
+            "name": "Game A",
             "min_players": 4,
             "max_players": 6,
             "password": "password",
@@ -84,6 +85,7 @@ def test_retrieve_availables_games_with_two_games():
     assert response.json() == [
         {
             "id": 1,
+            "name": "Game A",
             "min_players": 4,
             "max_players": 6,
             "password": "password",
@@ -91,6 +93,7 @@ def test_retrieve_availables_games_with_two_games():
         },
         {
             "id": 2,
+            "name": "Game c",
             "min_players": 4,
             "max_players": 6,
             "password": "",
@@ -144,6 +147,7 @@ def test_verification_delete1():
     assert response.json() == [
         {
             "id": 1,
+            "name": "Game A",
             "min_players": 4,
             "max_players": 6,
             "password": "password",
@@ -151,6 +155,7 @@ def test_verification_delete1():
         },
         {
             "id": 2,
+            "name": "Game c",
             "min_players": 4,
             "max_players": 6,
             "password": "",
@@ -175,6 +180,7 @@ def test_verification_delete2():
     assert response.json() == [
         {
             "id": 2,
+            "name": "Game c",
             "min_players": 4,
             "max_players": 6,
             "password": "",
