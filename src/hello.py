@@ -82,13 +82,8 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
 
     with db_session:
         
-        db_game = select(g for g in Game if g.id == game_id).first()
-        
-        if not db_game:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="INVALID_GAME"
-            )
+        db_game = validate_game(game_id)
+
         if db_game.in_game:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -114,12 +109,12 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
 
     return response
 
-@app.delete("/{id_game}", status_code=status.HTTP_201_CREATED)
+@app.delete("/{id_game}")
 async def leave_game(game_info: GameStart) -> bool:
     """Leave a game
     Input: GameStart - game_id
     ---------
-    Output: Success/Failure  
+    Output: Delete game(True)/Delete player(False) 
     """
     with db_session:
         game = validate_game(game_info.id_game)
@@ -128,7 +123,6 @@ async def leave_game(game_info: GameStart) -> bool:
             players_of_game = Player.select(lambda p: p.game.id == game_info.id_game)
             for player in players_of_game:
                 player.delete()
-            game.delete()
             game_deleted = True
         else:
             player = validate_player(game_info.id_player)
@@ -147,12 +141,7 @@ async def get_player_info(player_id: int) -> PlayerInDB:
         Player Information
     """
     with db_session:
-        db_player = select(p for p in Player if p.id == player_id).first()
-        if not db_player:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="INVALID_PLAYER"
-            )
+        db_player = validate_player(player_id)
         player = db_player_2_player_schema(db_player)
     return player
 
@@ -171,7 +160,7 @@ async def get_game_info(game_id: int) -> GameInDB:
         return game
 
 
-@app.patch("/{id_game}", status_code=status.HTTP_201_CREATED)
+@app.patch("/{id_game}", status_code=status.HTTP_200_OK)
 async def start_game(game_info: GameStart) -> bool:
     """Starts the game
     Input: GameStart - game_id
@@ -195,7 +184,6 @@ async def start_game(game_info: GameStart) -> bool:
             )
         
         game.in_game = True
-        game.number_of_players = len(game.players)
 
         outplayers = shuffle_and_assign_positions(game.players)
         create_deck(game.id)

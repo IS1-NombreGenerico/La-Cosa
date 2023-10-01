@@ -28,7 +28,7 @@ def test_create_game_success():
 
 @pytest.mark.integration_test
 def test_start_game_failure():
-    response = client.patch("/{id_game}/game", json={
+    response = client.patch("/{id_game}", json={
         "id_player" : 1,
         "id_game" : 1
     })
@@ -133,11 +133,11 @@ def test_join_game_no_password():
 
 @pytest.mark.integration_test
 def test_leave_player_no_host_game():
-    response = client.request("DELETE", "/{id_game}/game", json={
+    response = client.request("DELETE", "/{id_game}", json={
         "id_player" : 4,
         "id_game" : 2
     })
-    assert response.status_code == 201
+    assert response.json() == False
     
 
 @pytest.mark.integration_test
@@ -165,12 +165,12 @@ def test_verification_delete1():
 
 
 @pytest.mark.integration_test
-def test_leave_single_player_game():
-    response = client.request("DELETE", "/{id_game}/game", json={
+def test_leave_host_game():
+    response = client.request("DELETE", "/{id_game}", json={
         "id_player" : 1,
         "id_game" : 1
     })
-    assert response.status_code == 201
+    assert response.json() == True
 
 
 @pytest.mark.integration_test
