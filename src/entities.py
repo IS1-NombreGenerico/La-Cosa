@@ -5,6 +5,7 @@ import config
 db = Database()
 
 class Card(db.Entity):
+    """Represent a Card in the database"""
     id = PrimaryKey(int, auto=True)
     name = Required(CardName, default=CardName.THE_THING)
     description = Required(str, default="description")
@@ -15,6 +16,7 @@ class Card(db.Entity):
     required_players = Required(int, default=0)
 
 class Player(db.Entity):
+    """Represent a Player in the database"""
     id = PrimaryKey(int, auto=True)
     name = Required(str)
     host = Optional("Game", reverse="host", cascade_delete=True)
@@ -28,6 +30,7 @@ class Player(db.Entity):
     right_barrier = Required(bool, default=False)
 
 class Game(db.Entity):
+    """Represent a Game in the database"""
     id = PrimaryKey(int, auto=True) 
     name = Required(str)
     host = Required(Player, reverse="host")

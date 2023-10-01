@@ -72,8 +72,7 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
     """ Join a game
     Input: PlayerIn
     -------
-    Output: PlayerResponse
-        
+    Output: PlayerResponse   
     """
     if not player_info.player_name:
         raise HTTPException(
@@ -115,9 +114,13 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
 
     return response
 
-@app.delete("/{id_game}/game", status_code=status.HTTP_201_CREATED)
+@app.delete("/{id_game}", status_code=status.HTTP_201_CREATED)
 async def leave_game(game_info: GameStart) -> bool:
-
+    """Leave a game
+    Input: GameStart - game_id
+    ---------
+    Output: Success/Failure  
+    """
     with db_session:
         game = validate_game(game_info.id_game)
 
@@ -162,19 +165,19 @@ async def get_game_info(game_id: int) -> GameInDB:
         Information about the game
     """
     with db_session:
-        db_game = select(g for g in Game if g.id == game_id).first()
-        if not db_game:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="INVALID_GAME"
-            )
+        db_game = validate_game(game_id)
         players = [db_player_2_player_schema(p) for p in db_game.players]
         game = db_game_2_game_schema(db_game, players)
         return game
 
 
-@app.patch("/{id_game}/game", status_code=status.HTTP_201_CREATED)
+@app.patch("/{id_game}", status_code=status.HTTP_201_CREATED)
 async def start_game(game_info: GameStart) -> bool:
+    """Starts the game
+    Input: GameStart - game_id
+    ---------
+    Ouput: Success/Failure
+    """
     with db_session:
         player = validate_player(game_info.id_player)
         game = validate_game(game_info.id_game)
