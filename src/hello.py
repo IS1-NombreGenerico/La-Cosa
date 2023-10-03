@@ -102,6 +102,7 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
 
         p = Player(name = player_info.player_name, game = db_game, position = db_game.number_of_players)
         
+        db_game.players.add(p)
         db_game.number_of_players += 1
         flush()
 

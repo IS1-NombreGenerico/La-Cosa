@@ -111,7 +111,6 @@ def test_join_game_success():
     assert response.status_code == 201
     assert response.json() == {"id": 3}
 
-
 @pytest.mark.integration_test
 def test_join_game_failure():
     response = client.post("/join/1", json={
@@ -131,14 +130,80 @@ def test_join_game_no_password():
     assert response.json() == {"id": 4}
 
 
+
+#Agregar jugadores para iniciar la partida
+@pytest.mark.integration_test
+def test_join_to_start1():
+    response = client.post("/join/2", json={
+        "player_name": "Player1",
+        "password": "password"
+    })
+    assert response.status_code == 201
+    assert response.json() == {"id": 5}
+
+@pytest.mark.integration_test
+def test_join_to_start2():
+    response = client.post("/join/2", json={
+        "player_name": "Player2",
+        "password": "password"
+    })
+    assert response.status_code == 201
+    assert response.json() == {"id": 6}
+
+@pytest.mark.integration_test
+def test_join_to_start3():
+    response = client.post("/join/2", json={
+        "player_name": "Player3",
+        "password": "password"
+    })
+    assert response.status_code == 201
+    assert response.json() == {"id": 7}
+
+@pytest.mark.integration_test
+def test_join_to_start4():
+    response = client.post("/join/2", json={
+        "player_name": "Player4",
+        "password": "password"
+    })
+    assert response.status_code == 201
+    assert response.json() == {"id": 8}
+
+
+
+@pytest.mark.integration_test
+def test_start_game_succes():
+    response = client.patch("/{id_game}", json={
+        "id_player" : 2,
+        "id_game" : 2
+    })
+    assert response.status_code == 200
+    assert response.json() == True
+
+
+@pytest.mark.integration_test
+def test_verification_delete2():
+    response = client.get("/join")
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": 1,
+            "name": "Game A",
+            "min_players": 4,
+            "max_players": 6,
+            "password": "password",
+            "number_of_players": 2
+        }
+    ]
+
+
 @pytest.mark.integration_test
 def test_leave_player_no_host_game():
     response = client.request("DELETE", "/{id_game}", json={
-        "id_player" : 4,
-        "id_game" : 2
+        "id_player" : 2,
+        "id_game" : 1
     })
     assert response.json() == False
-    
+
 
 @pytest.mark.integration_test
 def test_verification_delete1():
@@ -151,18 +216,9 @@ def test_verification_delete1():
             "min_players": 4,
             "max_players": 6,
             "password": "password",
-            "number_of_players": 2
-        },
-        {
-            "id": 2,
-            "name": "Game c",
-            "min_players": 4,
-            "max_players": 6,
-            "password": "",
             "number_of_players": 1
         }
     ]
-
 
 @pytest.mark.integration_test
 def test_leave_host_game():
@@ -174,16 +230,7 @@ def test_leave_host_game():
 
 
 @pytest.mark.integration_test
-def test_verification_delete2():
+def test_verification_delete3():
     response = client.get("/join")
     assert response.status_code == 200
-    assert response.json() == [
-        {
-            "id": 2,
-            "name": "Game c",
-            "min_players": 4,
-            "max_players": 6,
-            "password": "",
-            "number_of_players": 1
-        }
-    ]
+    assert response.json() == []
