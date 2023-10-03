@@ -124,12 +124,12 @@ async def leave_game(game_info: GameStart) -> dict:
             players_of_game = Player.select(lambda p: p.game.id == game_info.id_game)
             for player in players_of_game:
                 player.delete()
-            return {"message": "Game Delete"}
+            return {"message": f"Game {game_info.id_game} Deleted"}
         else:
             player = validate_player(game_info.id_player)
             player.delete()
             game.number_of_players -= 1
-            return {"message": "Player Delete"}
+            return {"message": f"Player {game_info.id_player} Deleted"}
 
 
 @app.get("/player/{player_id}")
@@ -161,7 +161,7 @@ async def get_game_info(game_id: int) -> GameInDB:
 
 
 @app.patch("/{id_game}", status_code=status.HTTP_200_OK)
-async def start_game(game_info: GameStart):
+async def start_game(game_info: GameStart) -> dict:
     """Starts the game
     Input: GameStart - game_id
     ---------
@@ -188,3 +188,4 @@ async def start_game(game_info: GameStart):
         outplayers = shuffle_and_assign_positions(game.players)
         create_deck(game.id)
         
+        return {"message": f"Game {game_info.id_game} Started"}
