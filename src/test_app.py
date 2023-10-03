@@ -181,7 +181,7 @@ def test_start_game_succes():
 
 
 @pytest.mark.integration_test
-def test_verification_delete2():
+def test_verification_start():
     response = client.get("/join")
     assert response.status_code == 200
     assert response.json() == [
@@ -230,7 +230,7 @@ def test_leave_host_game():
 
 
 @pytest.mark.integration_test
-def test_verification_delete3():
+def test_verification_delete2():
     response = client.get("/join")
     assert response.status_code == 200
     assert response.json() == []
