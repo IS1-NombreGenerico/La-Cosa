@@ -111,7 +111,7 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
     return response
 
 @app.delete("/{id_game}")
-async def leave_game(game_info: GameStart) -> bool:
+async def leave_game(game_info: GameStart) -> dict:
     """Leave a game
     Input: GameStart - game_id
     ---------
@@ -124,14 +124,13 @@ async def leave_game(game_info: GameStart) -> bool:
             players_of_game = Player.select(lambda p: p.game.id == game_info.id_game)
             for player in players_of_game:
                 player.delete()
-            game_deleted = True
+            return {"message": "Game Delete"}
         else:
             player = validate_player(game_info.id_player)
             player.delete()
             game.number_of_players -= 1
-            game_deleted = False
+            return {"message": "Player Delete"}
 
-        return game_deleted
 
 @app.get("/player/{player_id}")
 async def get_player_info(player_id: int) -> PlayerInDB:
@@ -162,7 +161,7 @@ async def get_game_info(game_id: int) -> GameInDB:
 
 
 @app.patch("/{id_game}", status_code=status.HTTP_200_OK)
-async def start_game(game_info: GameStart) -> bool:
+async def start_game(game_info: GameStart):
     """Starts the game
     Input: GameStart - game_id
     ---------
@@ -189,4 +188,3 @@ async def start_game(game_info: GameStart) -> bool:
         outplayers = shuffle_and_assign_positions(game.players)
         create_deck(game.id)
         
-        return True

@@ -177,7 +177,6 @@ def test_start_game_succes():
         "id_game" : 2
     })
     assert response.status_code == 200
-    assert response.json() == True
 
 
 @pytest.mark.integration_test
@@ -202,7 +201,7 @@ def test_leave_player_no_host_game():
         "id_player" : 2,
         "id_game" : 1
     })
-    assert response.json() == False
+    assert response.json() == {"message": "Player Delete"}
 
 
 @pytest.mark.integration_test
@@ -226,7 +225,7 @@ def test_leave_host_game():
         "id_player" : 1,
         "id_game" : 1
     })
-    assert response.json() == True
+    assert response.json() == {"message": "Game Delete"}
 
 
 @pytest.mark.integration_test
