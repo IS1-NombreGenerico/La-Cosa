@@ -195,7 +195,7 @@ async def start_game(game_info: GameStart) -> bool:
 @app.get("/{id_game}")
 async def deal_cards(id_game: int):
     with db_session:
-        db_game = validate_game(int)
+        db_game = validate_game(id_game)
 
         cards_list = list(db_game.deck)
         random.shuffle(cards_list)
@@ -208,7 +208,7 @@ async def deal_cards(id_game: int):
             eligible_kinds = {Kind.ACTION, Kind.DEFENSE}
 
             for _ in range(num_cards):
-                valid_cards = [card for card in cards_list if card.kind in eligible_kinds]
+                valid_cards = [Card for Card in cards_list if Card.kind in eligible_kinds]
                 if valid_cards:
                     selected_card = valid_cards.pop()
                     player.hand.add(selected_card)
