@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, CardIn, GameProgress
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, CardIn, GameProgress, CardOut
 import utils
 
 app = FastAPI()
@@ -221,11 +221,11 @@ async def play_card(id_game: int, id_card: int, id_player: int) -> bool:
             )
 
 @app.patch("{id_game}/{id_player}/play", status_code=status.HTTP_200_OK)
-async def play_card(id_game: int, id_player: int, CardIn, id_player_afected: int) -> GameProgress:
+async def play_card(id_game: int, id_player: int, card_info: CardIn, id_player_afected: int) -> GameProgress:
     """Plays a card
     Input: 
         id_player_afected
-        CardIn (id_card)
+        CardIn (id)
             Information about the card
     ---------
     Output: GameProgress
@@ -236,7 +236,13 @@ async def play_card(id_game: int, id_player: int, CardIn, id_player_afected: int
         game = utils.validate_game(id_game)
         player = utils.validate_player(id_player)
         player_afected = utils.validate_player(id_player_afected)
-        card = utils.validate_card(CardIn.card_id, id_player)
+        card = utils.validate_card(card_info.card_id, id_player)
+
+        if player.position != game.current_turn:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="NOT_ON_TURN"
+            )
 
         if card.kind != Kind.ACTION:
             raise HTTPException(
@@ -244,8 +250,34 @@ async def play_card(id_game: int, id_player: int, CardIn, id_player_afected: int
                 detail="INVALID_PLAY"
             )
         
-        if playable_card(card):
-            play_flamethrower(card, player_afected)
+        if implemented_card(card):
+            match card.name:
+                case card.FLAMETHROWER:
+                    utils.play_flamethrower(card, player_afected)
+                case _:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="INVALID_CARD"
+                    )
         
         player.hand.remove(card)
         game.discarded.add(card)
+
+        game.current_turn = (game.current_turn + 1) % game.number_of_players
+
+        return db_game_2_game_progress(game)
+
+@app.get("/{id_game}/{id_player}/play", status_code=status.HTTP_200_OK)
+async def retrieve_information(id_game: int, id_player:int, card_info: CardIn) -> CardOut:
+    """Returns information about a card
+    Input: CardIn (id)
+    ---------
+    Output: CardOut
+        Information about the card
+    """
+    with db_session:
+        game = utils.validate_game(id_game)
+        player = utils.validate_player(id_player)
+        card = utils.validate_card(card_info.card_id, id_player)
+
+        return utils.db_card_2_card_out(card, player)

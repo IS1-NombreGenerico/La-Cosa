@@ -1,5 +1,5 @@
 from entities import Game, Player, Card
-from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB
+from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgress
 from enumerations import CardName, Kind
 from fastapi import HTTPException
 from pony.orm import select
@@ -14,6 +14,19 @@ def db_player_2_player_out(db_player: Player) -> PlayerOut:
         player_name=db_player.name,
     )
 
+def db_player_2_player_schema(db_player: Player) -> PlayerInDB:
+    """Converts a Player object from the database to a PlayerInDB object"""
+    return PlayerInDB(
+        player_id=db_player.id, 
+        name=db_player.name, 
+        game_id=db_player.game.id,
+        postition=db_player.position, 
+        role=db_player.role, 
+        is_dead=db_player.is_dead, 
+        in_lockdown=db_player.in_lockdown, 
+        left_barrier=db_player.left_barrier, 
+        right_barrier=db_player.right_barrier)
+        
 def db_game_2_game_out(db_game: Game) -> GameOut:
     """Converts a Game object from the database to a GameOut object"""
     return GameOut(
@@ -42,19 +55,47 @@ def db_game_2_game_schema(db_game: Game, players) -> GameInDB:
             number_of_players=db_game.number_of_players
         )
 
-def db_player_2_player_schema(db_player: Player) -> PlayerInDB:
-    """Converts a Player object from the database to a PlayerInDB object"""
-    return PlayerInDB(
-        player_id=db_player.id, 
-        name=db_player.name, 
-        game_id=db_player.game.id,
-        postition=db_player.position, 
-        role=db_player.role, 
-        is_dead=db_player.is_dead, 
-        in_lockdown=db_player.in_lockdown, 
-        left_barrier=db_player.left_barrier, 
-        right_barrier=db_player.right_barrier)
+def db_card_2_card_out(db_card: Card, db_player: Player) -> CardOut:
+    """Converts a Card object from the database to a CardOut object"""
+    return CardOut(
+        id=db_card.id,
+        name=db_card.name,
+        description=db_card.description,
+        kind=db_card.kind,
+        playable=playable_card(db_card, db_player),
+        players=targeted_players(db_card, db_player),
+    )
 
+def playable_card(db_card: Card, db_player: Player) -> bool:
+    """Returns if the card is playable"""
+    
+    return db_card.player.id == db_player.id and db_card.kind == Kind.ACTION
+
+def targeted_players(db_card: Card, db_player: Player) -> List[Player]:
+    """Returns the players that can be targeted"""
+    if playable_card(db_card, db_player) == False:
+        return []
+    
+    match db_card.name:
+        case CardName.FLAMETHROWER:
+            return [
+                    p
+                    for p in db_player.game.players
+                    if
+                        p.turn == ((db_player.turn + 1) % db_player.game.number_of_players)
+                        or
+                        p.turn == ((db_player.turn - 1) % db_player.game.number_of_players)
+                ]
+        case _:
+            return []
+
+
+def db_game_2_game_progress(db_game: Game) -> GameProgress:
+    """Converts a Game object from the database to a GameProgress object"""
+    return GameProgress(
+        is_over=db_game.is_done,
+        next_turn=db_game.current_turn,
+    )
 
 def validate_game(id_game: int) -> Game:
     """Verifies that a game exists in the database"""
@@ -69,6 +110,15 @@ def validate_player(id_player: int) -> Player:
     if player is None:
         raise HTTPException(status_code=404, detail="INVALID_PLAYER")
     return player
+
+def validate_card(id_card: int, id_player: int ) -> Card:
+    """Validate if the card is in the player's hand and can be played"""
+    card = select(c for c in Card if c.id == id_card).first()
+    if card is None:
+        raise HTTPException(status_code=404, detail="INVALID_CARD")
+    if card.player.id != id_player:
+        raise HTTPException(status_code=404, detail="INVALID_PLAY")
+    return card
 
 def shuffle_and_assign_positions(players) -> List[Player]:
     """Shuffles the players and assigns them a position"""
@@ -114,8 +164,8 @@ def create_deck(id_game : int):
             c = Card(
                 name = card, 
                 kind = kind,
-                game = game,
             )
+            game.deck.add(c)
 # Falta testear
 def draw_card(game: Game, id_player: int) -> bool:
     """Draws a card to the given player"""
@@ -137,15 +187,6 @@ def draw_card(game: Game, id_player: int) -> bool:
     game.deck.remove(card)
     return True
 
-def validate_card(id_card: int, id_player: int ) -> Card:
-    """Validate if the card is in the player's hand and can be played"""
-    card = select(c for c in Card if c.id == id_card).first()
-    if card is None:
-        raise HTTPException(status_code=404, detail="INVALID_CARD")
-    if card.player.id != id_player:
-        raise HTTPException(status_code=404, detail="INVALID_PLAY")
-    return card
-
 def with_single_target(id_card: int):
     """Verifies if the card need a single target"""
     card = select(c for c in Card if c.id == id_card).first()
@@ -160,8 +201,8 @@ def play_card_with_target(game: Game, id_card: int, id_player: int) -> bool:
         case _:
             return False
 
-def playable_card(card) -> bool:
-    """Return if the card is playable"""
+def implemented_card(card: Card) -> bool:
+    """Return if the card is implemented"""
     return card.name == FLAMETHROWER
 
 def play_flamethrower(card, player_afected):

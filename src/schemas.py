@@ -80,4 +80,5 @@ class CardOut(BaseModel):
     name: str
     description: str
     kind: str
-    players: List[PlayerInDB]
+    playable: bool
+    players: List[PlayerInDB] | None = None

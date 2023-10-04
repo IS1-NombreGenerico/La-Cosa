@@ -9,9 +9,9 @@ class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(CardName, default=CardName.THE_THING)
     description = Required(str, default="description")
-    discarded = Optional('Game', reverse="discarded")
     kind = Required(Kind, default=Kind.ACTION)
-    game = Required('Game', reverse="deck")
+    game_deck = Optional('Game', reverse="deck")
+    game_discard = Optional('Game', reverse="discarded")
     player = Optional('Player', reverse="hand")
     required_players = Required(int, default=0)
 
