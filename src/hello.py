@@ -5,7 +5,7 @@ from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameStart
-from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema, validate_game, validate_player, shuffle_and_assign_positions, create_deck , validate_card, play_card_with_target
+import utils
 
 app = FastAPI()
 
@@ -57,7 +57,7 @@ async def retrieve_availables_games() -> List[GameOut]:
 
     with db_session:
         games = [
-            db_game_2_game_out(g)
+            utils.db_game_2_game_out(g)
             for g in select(
                 g
                 for g in Game
@@ -82,7 +82,7 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
 
     with db_session:
         
-        db_game = validate_game(game_id)
+        db_game = utils.validate_game(game_id)
 
         if db_game.in_game:
             raise HTTPException(
@@ -118,7 +118,7 @@ async def leave_game(game_info: GameStart) -> dict:
     Output: Delete game(True)/Delete player(False) 
     """
     with db_session:
-        game = validate_game(game_info.id_game)
+        game = utils.validate_game(game_info.id_game)
 
         if game.host.id == game_info.id_player:
             players_of_game = Player.select(lambda p: p.game.id == game_info.id_game)
@@ -126,7 +126,7 @@ async def leave_game(game_info: GameStart) -> dict:
                 player.delete()
             return {"message": f"Game {game_info.id_game} Deleted"}
         else:
-            player = validate_player(game_info.id_player)
+            player = utils.validate_player(game_info.id_player)
             player.delete()
             game.number_of_players -= 1
             return {"message": f"Player {game_info.id_player} Deleted"}
@@ -141,8 +141,8 @@ async def get_player_info(player_id: int) -> PlayerInDB:
         Player Information
     """
     with db_session:
-        db_player = validate_player(player_id)
-        player = db_player_2_player_schema(db_player)
+        db_player = utils.validate_player(player_id)
+        player = utils.db_player_2_player_schema(db_player)
     return player
 
 @app.get("/game/{game_id}")
@@ -154,9 +154,9 @@ async def get_game_info(game_id: int) -> GameInDB:
         Information about the game
     """
     with db_session:
-        db_game = validate_game(game_id)
-        players = [db_player_2_player_schema(p) for p in db_game.players]
-        game = db_game_2_game_schema(db_game, players)
+        db_game = utils.validate_game(game_id)
+        players = [utils.db_player_2_player_schema(p) for p in db_game.players]
+        game = utils.db_game_2_game_schema(db_game, players)
         return game
 
 
@@ -168,8 +168,8 @@ async def start_game(game_info: GameStart) -> dict:
     Ouput: Success/Failure
     """
     with db_session:
-        player = validate_player(game_info.id_player)
-        game = validate_game(game_info.id_game)
+        player = utils.validate_player(game_info.id_player)
+        game = utils.validate_game(game_info.id_game)
         
         if len(game.players) < game.min_players:
             raise HTTPException(
@@ -185,8 +185,8 @@ async def start_game(game_info: GameStart) -> dict:
         
         game.in_game = True
 
-        outplayers = shuffle_and_assign_positions(game.players)
-        create_deck(game.id)
+        outplayers = utils.shuffle_and_assign_positions(game.players)
+        utils.create_deck(game.id)
         
         return {"message": f"Game {game_info.id_game} Started"}
 
@@ -198,9 +198,10 @@ async def play_card(id_game: int, id_card: int, id_player: int) -> bool:
     Output: Success/Failure
     """
     with db_session:
-        game = validate_game(id_game)
-        if(validate_card(id_card, id_player)):
-            return play_card_with_target(game, id_card, id_player)
+        game = utils.validate_game(id_game)
+        if(utils.validate_card(id_card, id_player) 
+            and utils.with_single_target(id_card)):
+            return utils.play_card_with_target(game, id_card, id_player)
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

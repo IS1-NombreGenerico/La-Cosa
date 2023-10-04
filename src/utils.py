@@ -27,7 +27,7 @@ def db_game_2_game_out(db_game: Game) -> GameOut:
 
 def db_game_2_game_schema(db_game: Game, players) -> GameInDB:
     """Converts a Game object from the database to a GameInDB object"""
-        return GameInDB(
+    return GameInDB(
             game_id=db_game.id,
             name=db_game.name,
             host=db_game.host.id,
@@ -121,6 +121,11 @@ def validate_card(id_card: int, id_player: int ) -> bool:
     """Validate if the card is in the player's hand and can be played"""
     player = validate_player(id_player)
     return id_card in [card.id for card in player.hand]
+
+def with_single_target(id_card: int):
+    """Verifies if the card need a single target"""
+    card = select(c for c in Card if c.id == id_card).first()
+    return card.name in [CardName.FLAMETHROWER]
 
 def play_card_with_target(game: Game, id_card: int, id_player: int) -> bool:
     """Plays a card with a target and returns success/failure"""
