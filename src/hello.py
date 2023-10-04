@@ -5,7 +5,7 @@ from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameStart
-from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema, validate_game, validate_player, shuffle_and_assign_positions, create_deck
+from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema, validate_game, validate_player, shuffle_and_assign_positions, create_deck , validate_card, play_card_with_target
 
 app = FastAPI()
 
@@ -189,3 +189,20 @@ async def start_game(game_info: GameStart) -> dict:
         create_deck(game.id)
         
         return {"message": f"Game {game_info.id_game} Started"}
+
+@app.patch("/game/{id_game}/card/{id_card}", status_code=status.HTTP_200_OK)
+async def play_card(id_game: int, id_card: int, id_player: int) -> bool:
+    """Plays a card
+    Input: id_game, id_card, id_player
+    ---------
+    Output: Success/Failure
+    """
+    with db_session:
+        game = validate_game(id_game)
+        if(validate_card(id_card, id_player)):
+            return play_card_with_target(game, id_card, id_player)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INVALID_CARD"
+            )
