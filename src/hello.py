@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameStart
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, CardIn, GameProgress
 import utils
 
 app = FastAPI()
@@ -22,9 +22,10 @@ app.add_middleware(
 async def create_game(form: CreateGameIn) -> CreateGameResponse:
     """ Creates a new game
     Input: CreateGameIn
+        Information about the game (name, host, min_players, max_players, password)
     --------
     Output: CreateGameResponse
-        Information about the game and host
+        Information about the game and host (id, host_id)
     """
     if form.min_players > form.max_players:
         raise HTTPException(
@@ -71,8 +72,10 @@ async def retrieve_availables_games() -> List[GameOut]:
 async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
     """ Join a game
     Input: PlayerIn
+        Information about the player and game (player name, game password)
     -------
     Output: PlayerResponse   
+        Information about the player (id)
     """
     if not player_info.player_name:
         raise HTTPException(
@@ -110,26 +113,26 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
 
     return response
 
-@app.delete("/{id_game}")
-async def leave_game(game_info: GameStart) -> dict:
+@app.delete("/{id_game}/{id_player}")
+async def leave_game(id_game: int, id_player: int) -> dict:
     """Leave a game
-    Input: GameStart - game_id
+    Input: None
     ---------
-    Output: Delete game(True)/Delete player(False) 
+    Output: Deleted game (Bool)
     """
     with db_session:
-        game = utils.validate_game(game_info.id_game)
+        game = utils.validate_game(id_game)
 
-        if game.host.id == game_info.id_player:
-            players_of_game = Player.select(lambda p: p.game.id == game_info.id_game)
+        if game.host.id == id_player:
+            players_of_game = Player.select(lambda p: p.game.id == id_game)
             for player in players_of_game:
                 player.delete()
-            return {"message": f"Game {game_info.id_game} Deleted"}
+            return {"message": f"Game {id_game} Deleted"}
         else:
-            player = utils.validate_player(game_info.id_player)
+            player = utils.validate_player(id_player)
             player.delete()
             game.number_of_players -= 1
-            return {"message": f"Player {game_info.id_player} Deleted"}
+            return {"message": f"Player {id_player} Deleted"}
 
 
 @app.get("/player/{player_id}")
@@ -160,18 +163,18 @@ async def get_game_info(game_id: int) -> GameInDB:
         return game
 
 
-@app.patch("/{id_game}", status_code=status.HTTP_200_OK)
-async def start_game(game_info: GameStart) -> dict:
+@app.patch("/{id_game}/{id_player}", status_code=status.HTTP_200_OK)
+async def start_game(id_game: int, id_player: int) -> dict:
     """Starts the game
-    Input: GameStart - game_id
+    Input: none
     ---------
     Ouput: Success/Failure
     """
     with db_session:
-        player = utils.validate_player(game_info.id_player)
-        game = utils.validate_game(game_info.id_game)
+        player = utils.validate_player(id_player)
+        game = utils.validate_game(id_game)
         
-        if len(game.players) < game.min_players:
+        if game.number_of_players < game.min_players:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INSUFFICIENT_PLAYERS"
@@ -188,7 +191,7 @@ async def start_game(game_info: GameStart) -> dict:
         outplayers = utils.shuffle_and_assign_positions(game.players)
         utils.create_deck(game.id)
         
-        return {"message": f"Game {game_info.id_game} Started"}
+        return {"message": f"Game {id_game} Started"}
     
 @app.patch('/game/{id_game}/turn', status_code=status.HTTP_200_OK)
 async def draw_card(id_game: int, id_player: int) -> bool:
@@ -216,3 +219,33 @@ async def play_card(id_game: int, id_card: int, id_player: int) -> bool:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_CARD"
             )
+
+@app.patch("{id_game}/{id_player}/play", status_code=status.HTTP_200_OK)
+async def play_card(id_game: int, id_player: int, CardIn, id_player_afected: int) -> GameProgress:
+    """Plays a card
+    Input: 
+        id_player_afected
+        CardIn (id_card)
+            Information about the card
+    ---------
+    Output: GameProgress
+        Information about the game progress
+    """
+
+    with db_session:
+        game = utils.validate_game(id_game)
+        player = utils.validate_player(id_player)
+        player_afected = utils.validate_player(id_player_afected)
+        card = utils.validate_card(CardIn.card_id, id_player)
+
+        if card.kind != Kind.ACTION:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INVALID_PLAY"
+            )
+        
+        if playable_card(card):
+            play_flamethrower(card, player_afected)
+        
+        player.hand.remove(card)
+        game.discarded.add(card)

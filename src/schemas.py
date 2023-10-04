@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
-# Create Game Form
 class CreateGameIn(BaseModel):
     """Create game form"""
     game_name: str
@@ -10,18 +9,11 @@ class CreateGameIn(BaseModel):
     max_players: int
     password: str | None = None
 
-# Game creation response
 class CreateGameResponse(BaseModel):
     """Game creation response"""
     id: int
     host_id: int
-
-# Inbound start game
-class GameStart(BaseModel):
-    id_player : int
-    id_game : int
-
-# Outbound game
+ 
 class GameOut(BaseModel):
     """Outbound game"""
     id: int
@@ -36,18 +28,15 @@ class GameProgress(BaseModel):
     is_over: bool
     next_turn: int
 
-# Inbound player
 class PlayerIn(BaseModel):
     """Inbound player"""
     player_name: str
     password: str | None = None
 
-# Player creation response
 class PlayerResponse(BaseModel):
     """Player creation response"""
     id: int
 
-# Outbound player
 class PlayerOut(BaseModel):
     """Outbound player"""
     id: int

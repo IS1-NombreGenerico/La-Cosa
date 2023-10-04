@@ -137,10 +137,14 @@ def draw_card(game: Game, id_player: int) -> bool:
     game.deck.remove(card)
     return True
 
-def validate_card(id_card: int, id_player: int ) -> bool:
+def validate_card(id_card: int, id_player: int ) -> Card:
     """Validate if the card is in the player's hand and can be played"""
-    player = validate_player(id_player)
-    return id_card in [card.id for card in player.hand]
+    card = select(c for c in Card if c.id == id_card).first()
+    if card is None:
+        raise HTTPException(status_code=404, detail="INVALID_CARD")
+    if card.player.id != id_player:
+        raise HTTPException(status_code=404, detail="INVALID_PLAY")
+    return card
 
 def with_single_target(id_card: int):
     """Verifies if the card need a single target"""
@@ -155,3 +159,10 @@ def play_card_with_target(game: Game, id_card: int, id_player: int) -> bool:
             return True
         case _:
             return False
+
+def playable_card(card) -> bool:
+    """Return if the card is playable"""
+    return card.name == FLAMETHROWER
+
+def play_flamethrower(card, player_afected):
+    pass

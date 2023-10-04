@@ -28,10 +28,7 @@ def test_create_game_success():
 
 @pytest.mark.integration_test
 def test_start_game_failure():
-    response = client.patch("/{id_game}", json={
-        "id_player" : 1,
-        "id_game" : 1
-    })
+    response = client.patch("/1/1")
     assert response.status_code == 400
     assert response.json() == {"detail": "INSUFFICIENT_PLAYERS"}
 
@@ -172,10 +169,7 @@ def test_join_to_start4():
 
 @pytest.mark.integration_test
 def test_start_game_succes():
-    response = client.patch("/{id_game}", json={
-        "id_player" : 2,
-        "id_game" : 2
-    })
+    response = client.patch("/2/2")
     assert response.status_code == 200
     assert response.json() == {"message": "Game 2 Started"}
 
@@ -198,10 +192,7 @@ def test_verification_start():
 
 @pytest.mark.integration_test
 def test_leave_player_no_host_game():
-    response = client.request("DELETE", "/{id_game}", json={
-        "id_player" : 2,
-        "id_game" : 1
-    })
+    response = client.request("DELETE", "/1/2")
     assert response.json() == {"message": "Player 2 Deleted"}
 
 
@@ -222,10 +213,7 @@ def test_verification_delete1():
 
 @pytest.mark.integration_test
 def test_leave_host_game():
-    response = client.request("DELETE", "/{id_game}", json={
-        "id_player" : 1,
-        "id_game" : 1
-    })
+    response = client.request("DELETE", "/1/1")
     assert response.json() == {"message": "Game 1 Deleted"}
 
 
