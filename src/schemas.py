@@ -31,6 +31,11 @@ class GameOut(BaseModel):
     password: str | None = None
     number_of_players: int
 
+class GameProgress(BaseModel):
+    """Game progress information"""
+    is_over: bool
+    next_turn: int
+
 # Inbound player
 class PlayerIn(BaseModel):
     """Inbound player"""
@@ -76,3 +81,14 @@ class GameInDB(BaseModel):
     max_players: int
     number_of_players: int
 
+class CardIn(BaseModel):
+    """Card identifier"""
+    id: int
+
+class CardOut(BaseModel):
+    """Card information"""
+    id: int
+    name: str
+    description: str
+    kind: str
+    players: List[PlayerInDB]
