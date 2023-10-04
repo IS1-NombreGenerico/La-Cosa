@@ -116,6 +116,26 @@ def create_deck(id_game : int):
                 kind = kind,
                 game = game,
             )
+# Falta testear
+def draw_card(game: Game, id_player: int) -> bool:
+    """Draws a card to the given player"""
+    player = validate_player(id_player)
+    card = None
+    # Grab the first card not discarded from deck
+    for c in game.deck:
+        if c.discarded == False:
+            card = c
+            break
+    # If all the deck is discarded
+    if card is None:
+        for c in game.deck:
+            c.discarded = False
+        random.shuffle(game.deck)
+        card = game.deck[0]
+    # Add the card to the player's hand and remove it from the deck
+    player.hand.add(card)
+    game.deck.remove(card)
+    return True
 
 def validate_card(id_card: int, id_player: int ) -> bool:
     """Validate if the card is in the player's hand and can be played"""

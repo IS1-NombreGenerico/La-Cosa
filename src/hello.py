@@ -189,6 +189,15 @@ async def start_game(game_info: GameStart) -> dict:
         utils.create_deck(game.id)
         
         return {"message": f"Game {game_info.id_game} Started"}
+    
+@app.patch('/game/{id_game}/turn', status_code=status.HTTP_200_OK)
+async def draw_card(id_game: int, id_player: int) -> bool:
+    """Draws a card to the given player"""
+    with db_session:
+        game = utils.validate_game(id_game)
+        if(game.in_game):
+            return utils.draw_card(game, id_player)
+    return True
 
 @app.patch("/game/{id_game}/card/{id_card}", status_code=status.HTTP_200_OK)
 async def play_card(id_game: int, id_card: int, id_player: int) -> bool:
