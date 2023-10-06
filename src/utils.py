@@ -166,25 +166,15 @@ def create_deck(id_game : int):
                 kind = kind,
             )
             game.deck.add(c)
-# Falta testear
-def draw_card(game: Game, id_player: int) -> bool:
+
+def draw_card(game: Game, player: Player) -> bool:
     """Draws a card to the given player"""
-    player = validate_player(id_player)
-    card = None
-    # Grab the first card not discarded from deck
-    for c in game.deck:
-        if c.discarded == False:
-            card = c
-            break
-    # If all the deck is discarded
-    if card is None:
-        for c in game.deck:
-            c.discarded = False
-        random.shuffle(game.deck)
-        card = game.deck[0]
-    # Add the card to the player's hand and remove it from the deck
+    if(game.game_deck.is_empty()):
+        game.game_deck = game.game_discard
+        game.game_discard = []
+    card = game.game_deck.random(1)
     player.hand.add(card)
-    game.deck.remove(card)
+    game.game_deck.remove(card)
     return True
 
 def with_single_target(id_card: int):

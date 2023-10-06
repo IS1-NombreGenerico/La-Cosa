@@ -8,6 +8,9 @@ databasename = "test.sqlite"
 
 @pytest.mark.integration_test
 def test_retrieve_availables_games_empty():
+    """Tests that the endpoint returns an empty list when there are no games available.
+    Fails if the status code is not 200 or the list is not empty."""
+
     response = client.get("/join")
     assert response.status_code == 200
     assert response.json() == []
@@ -15,6 +18,10 @@ def test_retrieve_availables_games_empty():
 
 @pytest.mark.integration_test
 def test_create_game_success():
+    """Tests a create game success scenario.
+    Fails if the status code is not 200 or 
+    if the game id and host_id is not correct."""
+
     response = client.post("/", json={
         "game_name": "Game A",
         "player_name": "Player A",
@@ -28,6 +35,10 @@ def test_create_game_success():
 
 @pytest.mark.integration_test
 def test_start_game_failure():
+    """Test a start of a game failure scenario.
+    Fails if the status code is not 400 or the error message is not correct.
+    """
+
     response = client.patch("/1/1")
     assert response.status_code == 400
     assert response.json() == {"detail": "INSUFFICIENT_PLAYERS"}
@@ -35,6 +46,10 @@ def test_start_game_failure():
 
 @pytest.mark.integration_test
 def test_create_game_failure():
+    """Tests a game failure creation scenario.
+    Fails if the status code is not 400 or the error message is not correct.
+    """
+
     response = client.post("/", json={
         "game_name": "Game b",
         "player_name": "Player b",
@@ -48,6 +63,10 @@ def test_create_game_failure():
 
 @pytest.mark.integration_test
 def test_retrieve_availables_games_with_one_game():
+    """Tests a retrieve of one game from the endpoint.
+    Fails if the status code is not 200 or the game retrieved is not correct.
+    """
+
     response = client.get("/join")
     assert response.status_code == 200
     assert response.json() == [
@@ -64,6 +83,11 @@ def test_retrieve_availables_games_with_one_game():
 
 @pytest.mark.integration_test
 def test_create_game_nopassword():
+    """Test creating a game with no password scenario.
+    Fails if the status code is not 201
+    if the game id and host_id is not correct.
+    """
+
     response = client.post("/", json={
         "game_name": "Game c",
         "player_name": "Player c",
@@ -77,6 +101,10 @@ def test_create_game_nopassword():
 
 @pytest.mark.integration_test
 def test_retrieve_availables_games_with_two_games():
+    """Tests a retrieve of two games from the endpoint.
+    Fails if the status code is not 200 or the games retrieved are not correct.
+    """
+
     response = client.get("/join")
     assert response.status_code == 200
     assert response.json() == [
@@ -101,6 +129,9 @@ def test_retrieve_availables_games_with_two_games():
 
 @pytest.mark.integration_test
 def test_join_game_success():
+    """Tests a join game success scenario.
+    Fails if status code is not 201 or if the new player id is not correct."""
+
     response = client.post("/join/1", json={
         "player_name": "Player B",
         "password": "password"
@@ -110,6 +141,9 @@ def test_join_game_success():
 
 @pytest.mark.integration_test
 def test_join_game_failure():
+    """Tests a join game failure scenario.
+    Fails if status code is not 400 or if the error message is not correct."""
+
     response = client.post("/join/1", json={
         "player_name": "Player C",
         "password": "wrongpassword"
@@ -119,6 +153,10 @@ def test_join_game_failure():
 
 @pytest.mark.integration_test
 def test_join_game_no_password():
+    """Tests a join game with no password scenario.
+    Fails if tje status code is not 201 or if the new player id is not correct.
+    """
+
     response = client.post("/join/2", json={
         "player_name": "Player D",
         "password": ""
@@ -131,6 +169,8 @@ def test_join_game_no_password():
 #Agregar jugadores para iniciar la partida
 @pytest.mark.integration_test
 def test_join_to_start1():
+    """Populates the database to test start game endpoint."""
+
     response = client.post("/join/2", json={
         "player_name": "Player1",
         "password": "password"
@@ -140,6 +180,8 @@ def test_join_to_start1():
 
 @pytest.mark.integration_test
 def test_join_to_start2():
+    """Populates the database to test start game endpoint."""
+
     response = client.post("/join/2", json={
         "player_name": "Player2",
         "password": "password"
@@ -149,6 +191,8 @@ def test_join_to_start2():
 
 @pytest.mark.integration_test
 def test_join_to_start3():
+    """Populates the database to test start game endpoint."""
+
     response = client.post("/join/2", json={
         "player_name": "Player3",
         "password": "password"
@@ -158,6 +202,8 @@ def test_join_to_start3():
 
 @pytest.mark.integration_test
 def test_join_to_start4():
+    """Populates the database to test start game endpoint."""
+
     response = client.post("/join/2", json={
         "player_name": "Player4",
         "password": "password"
@@ -169,6 +215,9 @@ def test_join_to_start4():
 
 @pytest.mark.integration_test
 def test_start_game_succes():
+    """Tests game start success scenario.
+    Fails if status code is not 200 or if the game is not started."""
+
     response = client.patch("/2/2")
     assert response.status_code == 200
     assert response.json() == {"message": "Game 2 Started"}
@@ -192,12 +241,17 @@ def test_verification_start():
 
 @pytest.mark.integration_test
 def test_leave_player_no_host_game():
+    """Tests the exit of a player no host from a game.
+    Fails if the message is not correct."""
+
     response = client.request("DELETE", "/1/2")
     assert response.json() == {"message": "Player 2 Deleted"}
 
 
 @pytest.mark.integration_test
 def test_verification_delete1():
+    """Tests the available games after deleting"""
+
     response = client.get("/join")
     assert response.status_code == 200
     assert response.json() == [
@@ -213,12 +267,18 @@ def test_verification_delete1():
 
 @pytest.mark.integration_test
 def test_leave_host_game():
+    """Tests the exit of the host from the game.
+    Fails if the message is not correct.
+    """
+    
     response = client.request("DELETE", "/1/1")
     assert response.json() == {"message": "Game 1 Deleted"}
 
 
 @pytest.mark.integration_test
 def test_verification_delete2():
+    """Tests the available games before deleting"""
+
     response = client.get("/join")
     assert response.status_code == 200
     assert response.json() == []
