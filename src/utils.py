@@ -170,8 +170,9 @@ def create_deck(id_game : int):
 def draw_card(game: Game, player: Player) -> bool:
     """Draws a card to the given player"""
     if(game.game_deck.is_empty()):
-        game.game_deck = game.game_discard
-        game.game_discard = []
+        for c in game.game_discard:
+            game.game_deck.add(c)
+        game.game_discard.clear()
     card = game.game_deck.random(1)
     player.hand.add(card)
     game.game_deck.remove(card)
@@ -185,8 +186,10 @@ def with_single_target(id_card: int):
 def play_card_with_target(game: Game, id_card: int, id_player: int) -> bool:
     """Plays a card with a target and returns success/failure"""
     card = select(c for c in Card if c.id == id_card).first()
+    player = select(c for c in Card if c.id == id_player).first()
     match card.name:
         case CardName.FLAMETHROWER:
+            play_flamethrower(game, player)
             return True
         case _:
             return False
@@ -195,5 +198,16 @@ def implemented_card(card: Card) -> bool:
     """Return if the card is implemented"""
     return card.name == FLAMETHROWER
 
-def play_flamethrower(card, player_afected):
-    pass
+def play_flamethrower(game: Game, player_afected: Player) -> None:
+    """Plays the flamethrower card"""
+    
+    #Set dead status
+    player_afected.is_dead = True
+    #Discard his hand
+    for c in player_afected.hand:
+        game.game_discard.add(c)
+    player_afected.hand.clear()
+    #Reorganize the positions
+    for p in game.players:
+        if p.position > player_afected.position:
+            p.position -= 1
