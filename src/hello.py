@@ -282,3 +282,25 @@ async def retrieve_information(id_game: int, id_player:int, card_info: CardIn) -
         card = utils.validate_card(card_info.card_id, id_player)
 
         return utils.db_card_2_card_out(card, player)
+    
+@app.delete("/{id_game}", status_code=status.HTTP_200_OK)
+async def finish_game(id_game: int) -> dict:
+    """Finishes the game
+    Input: none
+    ---------
+    Ouput: List of winners
+    """
+    with db_session:
+        game = utils.validate_game(id_game)
+        if(game.in_game):
+            game.in_game = False
+            response = utils.get_winners(game)
+            players_of_game = Player.select(lambda p: p.game.id == id_game)
+            for player in players_of_game:
+                player.delete()
+            return response
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INVALID_ACTION"
+            )

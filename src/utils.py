@@ -1,5 +1,5 @@
 from entities import Game, Player, Card
-from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgress
+from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgress, PlayerResponse
 from enumerations import CardName, Kind
 from fastapi import HTTPException
 from pony.orm import select
@@ -95,6 +95,12 @@ def db_game_2_game_progress(db_game: Game) -> GameProgress:
     return GameProgress(
         is_over=db_game.is_done,
         next_turn=db_game.current_turn,
+    )
+
+def db_player_2_player_schema(db_player: Player) -> PlayerResponse:
+    """Converts a Player object from the database to a PlayerResponse object"""
+    return PlayerResponse(
+        id=db_player.id,
     )
 
 def validate_game(id_game: int) -> Game:
@@ -211,3 +217,20 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
     for p in game.players:
         if p.position > player_afected.position:
             p.position -= 1
+
+def get_winners(game: Game) -> dict:
+    """Returns the winners of the game"""
+    live_players = [p for p in game.players if not p.is_dead]
+    human_players = [p for p in live_players if p.role == "HUMAN"]
+    infected_players = [p for p in live_players if p.role in ["INFECTED", "THE THING"]]
+    
+    if human_players:
+        return {"message" : "Humans Win",
+            "winners" :db_player_2_player_schema(human_players)}
+    elif len(live_players) == game.number_of_players:
+        thing_player = next((p for p in live_players if p.role == "THE THING"), None)
+        return {"message" : "Just the Thing Win",
+            "winners" : db_player_2_player_schema([thing_player] if thing_player else [])}
+    else:
+        return {"message" : "The Thing and Infecteds Win",
+            "winners" : db_player_2_player_schema(infected_players)}
