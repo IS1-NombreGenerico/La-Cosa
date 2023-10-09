@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game, Card
 from enumerations import Role, Kind
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameStart
-from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema, validate_game, validate_player, shuffle_and_assign_positions, create_deck, deal_cards
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameStart, CardOut
+from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema, validate_game, validate_player, shuffle_and_assign_positions, create_deck, deal_cards, db_card_2_card_schema
 import random
 
 app = FastAPI()
@@ -192,3 +192,21 @@ async def start_game(game_info: GameStart) -> bool:
         deal_cards(game.id)
         
         return True
+
+@app.get("/{id_game}/{id_player}")
+async def get_cards(id_game: int, id_player: int) -> [CardOut]:
+    """Returns the cards of the player
+    Input: id_game, id_player
+    ---------
+    Output: Cards of the player
+    """
+    with db_session:
+        game = validate_game(id_game)
+        player = validate_player(id_player)
+        if player.game != game:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INVALID_GAME"
+            )
+        cards = [db_card_2_card_schema(card for card in player.hand)]
+        return cards

@@ -1,6 +1,6 @@
 from entities import Game, Player, Card
-from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB
-from enumerations import CardName, Kind
+from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut
+from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
 from pony.orm import select
 from typing import List
@@ -55,6 +55,13 @@ def db_player_2_player_schema(db_player: Player) -> PlayerInDB:
         left_barrier=db_player.left_barrier, 
         right_barrier=db_player.right_barrier)
 
+def db_card_2_card_schema(db_card: Card) -> CardOut:
+    return CardOut(
+        id=db_card.id, 
+        name=db_card.name, 
+        description=db_card.description, 
+        kind=db_card.kind, 
+        required_players=db_card.required_players)
 
 def validate_game(id_game: int) -> Game:
     game = select(p for p in Game if p.id == id_game).first()
@@ -130,7 +137,9 @@ def deal_cards(game : Game):
             if valid_cards:
                 selected_card = valid_cards.pop()
                 player.hand.add(selected_card)
+                game.hand.remove(selected_card)
 
         if player.position == theThing:
             player.hand.add(card_theThing)
+            game.hand.remove(card_theThing)
             player.role = Role.THING

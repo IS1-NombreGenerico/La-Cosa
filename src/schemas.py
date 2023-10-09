@@ -76,3 +76,10 @@ class GameInDB(BaseModel):
     max_players: int
     number_of_players: int
 
+class CardOut(BaseModel):
+    """Outbound card"""
+    id: int
+    name: str
+    description: str
+    kind: str
+    required_players: int
