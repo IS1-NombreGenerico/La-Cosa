@@ -112,3 +112,25 @@ def create_deck(id_game : int):
                 kind = kind,
                 game = game,
             )
+
+
+def deal_cards(game : Game):
+    cards_list = list(game.deck)
+    random.shuffle(cards_list)
+
+    card_theThing = Card.get(name="THE_THING")
+    theThing = random.randint(1, game.number_of_players)
+
+    for player in game.players:
+        num_cards = 3 if player.position == theThing else 4
+        eligible_kinds = {Kind.ACTION, Kind.DEFENSE}
+
+        for _ in range(num_cards):
+            valid_cards = [Card for Card in cards_list if Card.kind in eligible_kinds]
+            if valid_cards:
+                selected_card = valid_cards.pop()
+                player.hand.add(selected_card)
+
+        if player.position == theThing:
+            player.hand.add(card_theThing)
+            player.role = Role.THING

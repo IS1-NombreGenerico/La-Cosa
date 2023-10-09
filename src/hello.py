@@ -5,7 +5,7 @@ from pony.orm import db_session, select, flush
 from entities import Player, Game, Card
 from enumerations import Role, Kind
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameStart
-from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema, validate_game, validate_player, shuffle_and_assign_positions, create_deck
+from utils import db_game_2_game_out, db_game_2_game_schema, db_player_2_player_schema, validate_game, validate_player, shuffle_and_assign_positions, create_deck, deal_cards
 import random
 
 app = FastAPI()
@@ -189,30 +189,6 @@ async def start_game(game_info: GameStart) -> bool:
 
         outplayers = shuffle_and_assign_positions(game.players)
         create_deck(game.id)
+        deal_cards(game.id)
         
         return True
-    
-@app.get("/{id_game}")
-async def deal_cards(id_game: int):
-    with db_session:
-        db_game = validate_game(id_game)
-
-        cards_list = list(db_game.deck)
-        random.shuffle(cards_list)
-
-        card_theThing = Card.get(name="THE_THING")
-        theThing = random.randint(1, db_game.number_of_players)
-
-        for player in db_game.players:
-            num_cards = 3 if player.position == theThing else 4
-            eligible_kinds = {Kind.ACTION, Kind.DEFENSE}
-
-            for _ in range(num_cards):
-                valid_cards = [Card for Card in cards_list if Card.kind in eligible_kinds]
-                if valid_cards:
-                    selected_card = valid_cards.pop()
-                    player.hand.add(selected_card)
-
-            if player.position == theThing:
-                player.hand.add(card_theThing)
-                player.role = Role.THING
