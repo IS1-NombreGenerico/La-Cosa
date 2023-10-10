@@ -176,12 +176,12 @@ def create_deck(id_game : int):
 def draw_card(game: Game, player: Player) -> bool:
     """Draws a card to the given player"""
     if(game.game_deck.is_empty()):
-        for c in game.game_discard:
-            game.game_deck.add(c)
-        game.game_discard.clear()
-    card = game.game_deck.random(1)
+        for c in game.discarded:
+            game.deck.add(c)
+        game.discarded.clear()
+    card = game.deck.random(1)
     player.hand.add(card)
-    game.game_deck.remove(card)
+    game.deck.remove(card)
     return True
 
 def with_single_target(id_card: int):
@@ -211,7 +211,7 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
     player_afected.is_dead = True
     #Discard his hand
     for c in player_afected.hand:
-        game.game_discard.add(c)
+        game.discarded.add(c)
     player_afected.hand.clear()
     #Reorganize the positions
     for p in game.players:
