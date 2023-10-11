@@ -202,7 +202,7 @@ def play_card_with_target(game: Game, id_card: int, id_player: int) -> bool:
 
 def implemented_card(card: Card) -> bool:
     """Return if the card is implemented"""
-    return card.name == FLAMETHROWER
+    return card.name == CardName.FLAMETHROWER
 
 def play_flamethrower(game: Game, player_afected: Player) -> None:
     """Plays the flamethrower card"""

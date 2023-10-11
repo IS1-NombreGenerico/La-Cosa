@@ -1,13 +1,16 @@
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
-from enumerations import Role
+from enumerations import Role, Kind
+from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, CardIn, GameProgress, CardOut
 import utils
 
 app = FastAPI()
+
+websockets = ConnectionManager()
 
 origins = ["*"]
 app.add_middleware(
@@ -65,7 +68,7 @@ async def retrieve_availables_games() -> List[GameOut]:
                 if filter_by_availability(g)
             )
         ]
-
+    
     return games
 
 @app.post("/join/{game_id}", status_code=status.HTTP_201_CREATED)
@@ -251,7 +254,7 @@ async def play_card(id_game: int, id_player: int, card_info: CardIn, id_player_a
                 detail="INVALID_PLAY"
             )
         
-        if implemented_card(card):
+        if utils.implemented_card(card):
             match card.name:
                 case card.FLAMETHROWER:
                     utils.play_flamethrower(card, player_afected)
@@ -266,7 +269,7 @@ async def play_card(id_game: int, id_player: int, card_info: CardIn, id_player_a
 
         game.current_turn = (game.current_turn + 1) % game.number_of_players
 
-        return db_game_2_game_progress(game)
+        return utils.db_game_2_game_progress(game)
 
 @app.get("/{id_game}/{id_player}/play", status_code=status.HTTP_200_OK)
 async def retrieve_information(id_game: int, id_player:int, card_info: CardIn) -> CardOut:

@@ -13,7 +13,7 @@ class CreateGameResponse(BaseModel):
     """Game creation response"""
     id: int
     host_id: int
- 
+
 class GameOut(BaseModel):
     """Outbound game"""
     id: int
