@@ -5,7 +5,8 @@ from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role, Kind
 from connection_manager import ConnectionManager
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, CardIn, GameProgress, CardOut
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
+from all_utils.play_card import implemented_card, play_flamethrower
 import utils
 
 app = FastAPI()
@@ -206,31 +207,11 @@ async def draw_card(id_game: int, id_player: int) -> bool:
             return utils.draw_card(game, player)
     return True
 
-@app.patch("/game/{id_game}/card/{id_card}", status_code=status.HTTP_200_OK)
-async def play_card(id_game: int, id_card: int, id_player: int) -> bool:
-    """Plays a card
-    Input: id_game, id_card, id_player
-    ---------
-    Output: Success/Failure
-    """
-    with db_session:
-        game = utils.validate_game(id_game)
-        if(utils.validate_card(id_card, id_player) 
-            and utils.with_single_target(id_card)):
-            return utils.play_card_with_target(game, id_card, id_player)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="INVALID_CARD"
-            )
-
-@app.patch("{id_game}/{id_player}/play", status_code=status.HTTP_200_OK)
-async def play_card(id_game: int, id_player: int, card_info: CardIn, id_player_afected: int) -> GameProgress:
+@app.patch("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
+async def play_card(id_game: int, id_player: int, id_card: int, id_player_afected: int) -> GameProgress:
     """Plays a card
     Input: 
         id_player_afected
-        CardIn (id)
-            Information about the card
     ---------
     Output: GameProgress
         Information about the game progress
@@ -239,8 +220,16 @@ async def play_card(id_game: int, id_player: int, card_info: CardIn, id_player_a
     with db_session:
         game = utils.validate_game(id_game)
         player = utils.validate_player(id_player)
-        player_afected = utils.validate_player(id_player_afected)
-        card = utils.validate_card(card_info.card_id, id_player)
+        card = utils.validate_card(id_card, id_player)
+
+        if card.name == WATCH_YOUR_BACK:
+            if not (id_player_afected is None):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="INVALID_PLAY"
+                )
+        else:
+            player_afected = utils.validate_player(id_player_afected)
 
         if player.position != game.current_turn:
             raise HTTPException(
@@ -248,33 +237,46 @@ async def play_card(id_game: int, id_player: int, card_info: CardIn, id_player_a
                 detail="NOT_ON_TURN"
             )
 
-        if card.kind != Kind.ACTION:
+        if card.kind != ACTION:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_PLAY"
             )
         
-        if utils.implemented_card(card):
-            match card.name:
-                case card.FLAMETHROWER:
-                    utils.play_flamethrower(card, player_afected)
-                case _:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="INVALID_CARD"
-                    )
+        match card.name: 
+            case card.FLAMETHROWER:
+                play_flamethrower(card, player_afected)
+            case card.WATCH_YOUR_BACK:
+                play_watch_your_back(card)
+            case card.SWAP_PLACES:
+                play_swap_places(card, player_afected)
+            case card.YOU_BETTER_RUN:
+                play_you_better_run(card, player_afected)
+            case card.SEDUCTION:
+                play_seduction(card, player_afected)
+            case card.ANALYSIS:
+                play_analysis(card, player_afected)
+            case card.AXE:
+                play_axe(card, player_afected)
+            case card.SUSPICION:
+                play_suspicion(card, player_afected)
+            case card.WHISKY:
+                play_whisky(card)
+            case _:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="INVALID_CARD"
+                )
         
         player.hand.remove(card)
         game.discarded.add(card)
 
-        game.current_turn = (game.current_turn + 1) % game.number_of_players
-
         return utils.db_game_2_game_progress(game)
 
-@app.get("/{id_game}/{id_player}/play", status_code=status.HTTP_200_OK)
-async def retrieve_information(id_game: int, id_player:int, card_info: CardIn) -> CardOut:
+@app.get("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
+async def retrieve_information(id_game: int, id_player:int, id_card: int) -> CardOut:
     """Returns information about a card
-    Input: CardIn (id)
+    Input: 
     ---------
     Output: CardOut
         Information about the card
@@ -282,10 +284,18 @@ async def retrieve_information(id_game: int, id_player:int, card_info: CardIn) -
     with db_session:
         game = utils.validate_game(id_game)
         player = utils.validate_player(id_player)
-        card = utils.validate_card(card_info.card_id, id_player)
+        card = utils.validate_card(id_card, id_player)
 
         return utils.db_card_2_card_out(card, player)
-    
+
+@app.delete("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
+async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
+    pass
+
+@app.post("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
+async def exchange_card(id_game: int, id_player:int, id_card: int) -> GameProgress:
+    pass
+
 @app.delete("/{id_game}", status_code=status.HTTP_200_OK)
 async def finish_game(id_game: int) -> dict:
     """Finishes the game

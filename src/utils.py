@@ -66,30 +66,6 @@ def db_card_2_card_out(db_card: Card, db_player: Player) -> CardOut:
         players=targeted_players(db_card, db_player),
     )
 
-def playable_card(db_card: Card, db_player: Player) -> bool:
-    """Returns if the card is playable"""
-    
-    return db_card.player.id == db_player.id and db_card.kind == Kind.ACTION
-
-def targeted_players(db_card: Card, db_player: Player) -> List[Player]:
-    """Returns the players that can be targeted"""
-    if playable_card(db_card, db_player) == False:
-        return []
-    
-    match db_card.name:
-        case CardName.FLAMETHROWER:
-            return [
-                    p
-                    for p in db_player.game.players
-                    if
-                        p.turn == ((db_player.turn + 1) % db_player.game.number_of_players)
-                        or
-                        p.turn == ((db_player.turn - 1) % db_player.game.number_of_players)
-                ]
-        case _:
-            return []
-
-
 def db_game_2_game_progress(db_game: Game) -> GameProgress:
     """Converts a Game object from the database to a GameProgress object"""
     return GameProgress(
@@ -183,40 +159,6 @@ def draw_card(game: Game, player: Player) -> bool:
     player.hand.add(card)
     game.deck.remove(card)
     return True
-
-def with_single_target(id_card: int):
-    """Verifies if the card need a single target"""
-    card = select(c for c in Card if c.id == id_card).first()
-    return card.name in [CardName.FLAMETHROWER]
-
-def play_card_with_target(game: Game, id_card: int, id_player: int) -> bool:
-    """Plays a card with a target and returns success/failure"""
-    card = select(c for c in Card if c.id == id_card).first()
-    player = select(c for c in Card if c.id == id_player).first()
-    match card.name:
-        case CardName.FLAMETHROWER:
-            play_flamethrower(game, player)
-            return True
-        case _:
-            return False
-
-def implemented_card(card: Card) -> bool:
-    """Return if the card is implemented"""
-    return card.name == CardName.FLAMETHROWER
-
-def play_flamethrower(game: Game, player_afected: Player) -> None:
-    """Plays the flamethrower card"""
-    
-    #Set dead status
-    player_afected.is_dead = True
-    #Discard his hand
-    for c in player_afected.hand:
-        game.discarded.add(c)
-    player_afected.hand.clear()
-    #Reorganize the positions
-    for p in game.players:
-        if p.position > player_afected.position:
-            p.position -= 1
 
 def get_winners(game: Game) -> dict:
     """Returns the winners of the game"""

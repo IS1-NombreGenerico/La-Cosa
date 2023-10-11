@@ -26,7 +26,7 @@ class GameOut(BaseModel):
 class GameProgress(BaseModel):
     """Game progress information"""
     is_over: bool
-    next_turn: int
+    in_turn: int
 
 class PlayerIn(BaseModel):
     """Inbound player"""
@@ -69,10 +69,6 @@ class GameInDB(BaseModel):
     min_players: int
     max_players: int
     number_of_players: int
-
-class CardIn(BaseModel):
-    """Card identifier"""
-    id: int
 
 class CardOut(BaseModel):
     """Card information"""
