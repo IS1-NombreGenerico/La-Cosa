@@ -3,10 +3,10 @@ from fastapi import FastAPI, HTTPException, status, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
-from enumerations import Role, Kind
+from enumerations import Role, Kind, CardName
 from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
-from all_utils.play_card import implemented_card, play_flamethrower
+import all_utils.play_card as play_card
 import utils
 
 app = FastAPI()
@@ -222,7 +222,7 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
         player = utils.validate_player(id_player)
         card = utils.validate_card(id_card, id_player)
 
-        if card.name == WATCH_YOUR_BACK:
+        if card.name == CardName.WATCH_YOUR_BACK:
             if not (id_player_afected is None):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -237,39 +237,38 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
                 detail="NOT_ON_TURN"
             )
 
-        if card.kind != ACTION:
+        if card.kind != Kind.ACTION:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_PLAY"
             )
         
         match card.name: 
-            case card.FLAMETHROWER:
-                play_flamethrower(card, player_afected)
-            case card.WATCH_YOUR_BACK:
-                play_watch_your_back(card)
-            case card.SWAP_PLACES:
-                play_swap_places(card, player_afected)
-            case card.YOU_BETTER_RUN:
-                play_you_better_run(card, player_afected)
-            case card.SEDUCTION:
-                play_seduction(card, player_afected)
-            case card.ANALYSIS:
-                play_analysis(card, player_afected)
-            case card.AXE:
-                play_axe(card, player_afected)
-            case card.SUSPICION:
-                play_suspicion(card, player_afected)
-            case card.WHISKY:
-                play_whisky(card)
+            case CardName.FLAMETHROWER:
+                play_card.play_flamethrower(card, player_afected)
+            case CardName.WATCH_YOUR_BACK:
+                play_card.play_watch_your_back(game, card)
+            case CardName.SWAP_PLACES:
+                play_card.play_swap_places(card, player, player_afected)
+            case CardName.YOU_BETTER_RUN:
+                play_card.play_you_better_run(card, player_afected)
+            case CardName.SEDUCTION:
+                play_card.play_seduction(card, player_afected)
+            case CardName.ANALYSIS:
+                play_card.play_analysis(card, player_afected)
+            case CardName.AXE:
+                play_card.play_axe(card, player_afected)
+            case CardName.SUSPICION:
+                play_card.play_suspicion(card, player_afected)
+            case CardName.WHISKY:
+                play_card.play_whisky(card)
             case _:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="INVALID_CARD"
                 )
         
-        player.hand.remove(card)
-        game.discarded.add(card)
+        utils.discard_card(game, player, card)
 
         return utils.db_game_2_game_progress(game)
 

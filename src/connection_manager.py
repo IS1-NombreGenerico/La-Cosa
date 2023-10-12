@@ -1,5 +1,4 @@
 from fastapi import WebSocket
-from typing import Union
 import json
 
 from schemas import GameInDB, GameOut

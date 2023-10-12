@@ -1,9 +1,10 @@
 from entities import Game, Player, Card
 from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgress, PlayerResponse
-from enumerations import CardName, Kind
+from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
 from pony.orm import select
 from typing import List
+from all_utils.play_card import playable_card, targeted_players
 import random
 
 def db_player_2_player_out(db_player: Player) -> PlayerOut:
@@ -176,3 +177,24 @@ def get_winners(game: Game) -> dict:
     else:
         return {"message" : "The Thing and Infecteds Win",
             "winners" : db_player_2_player_schema(infected_players)}
+    
+def discard_card(game: Game, player: Player, card: Card) -> None:
+    """Discards a card from the player's hand"""
+
+    player.hand.remove(card)
+    game.discarded.add(card)
+
+def exchange_card(player1: Player, player2: Player, cardp1: Card, cardp2: Card) -> None:
+    """Exchanges a card from player1 to player2"""
+    
+    if (cardp1.name == CardName.INFECTED and player1.role != Role.THING) or (cardp2.name == CardName.INFECTED and player2.role != Role.THING):
+        raise HTTPException(status_code=404, detail="INVALID_EXCHANGE")
+    elif (cardp1.name == CardName.INFECTED and player1.role == Role.THING and player2.role == Role.HUMAN):
+        player2.role = Role.INFECTED
+    elif (cardp2.name == CardName.INFECTED and player2.role == Role.THING and player1.role == Role.HUMAN):
+        player1.role = Role.INFECTED
+
+    player1.hand.remove(cardp1)
+    player2.hand.remove(cardp2)
+    player1.hand.add(cardp2)
+    player2.hand.add(cardp1)
