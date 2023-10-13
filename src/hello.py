@@ -331,6 +331,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
         connection_manager.disconnect(websocket)
         await connection_manager.broadcast(0, f"Client #{client_id} left the chat")
 
+@app.get("/test")
+async def get():
+    return HTMLResponse(html)
+
 html = """
 <!DOCTYPE html>
 <html>
@@ -367,7 +371,3 @@ html = """
     </body>
 </html>
 """
-
-@app.get("/test")
-async def get():
-    return HTMLResponse(html)

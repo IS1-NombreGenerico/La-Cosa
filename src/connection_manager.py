@@ -12,13 +12,11 @@ class ConnectionManager:
     async def connect(self, game_id: int ,websocket: WebSocket) -> None:
         await websocket.accept()
         self.active_connections.append((game_id, websocket))
-        print(self.active_connections[0])
 
     def disconnect(self, websocket: WebSocket) -> None:
-        for id_game, conn in self.active_connections:
+        for _, conn in self.active_connections:
             if conn == websocket:
-                pair = (id_game, conn)
-                self.active_connections.remove(pair)
+                self.active_connections.remove((_, websocket))
                 break
 
     async def send_personal_message(self, message: str, websocket: WebSocket) -> None:
