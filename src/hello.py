@@ -371,3 +371,23 @@ html = """
     </body>
 </html>
 """
+
+@app.websocket("/ws/join")
+async def websocket_join(websocket: WebSocket):
+    await connection_manager.connect(0, websocket)
+    try:
+        filter_by_availability = lambda g: g.number_of_players < g.max_players and not g.in_game
+
+        with db_session:
+            games = [
+                utils.db_game_2_game_out(g)
+                for g in select(
+                    g
+                    for g in Game
+                    if filter_by_availability(g)
+                )
+            ]
+        connection_manager.send_games(games)
+    except WebSocketDisconnect:
+        connection_manager.disconnect(websocket)
+    return games
