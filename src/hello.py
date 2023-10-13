@@ -390,4 +390,3 @@ async def websocket_join(websocket: WebSocket):
         connection_manager.send_games(games)
     except WebSocketDisconnect:
         connection_manager.disconnect(websocket)
-    return games
