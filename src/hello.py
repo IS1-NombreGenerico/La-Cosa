@@ -1,5 +1,6 @@
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, status, WebSocket
+from fastapi import FastAPI, HTTPException, status, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
@@ -11,7 +12,7 @@ import utils
 
 app = FastAPI()
 
-websockets = ConnectionManager()
+connection_manager = ConnectionManager()
 
 origins = ["*"]
 app.add_middleware(
@@ -316,3 +317,57 @@ async def finish_game(id_game: int) -> dict:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_ACTION"
             )
+        
+#Prueba de websocket
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    await connection_manager.connect(0, websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await connection_manager.send_personal_message(f"You wrote: {data}", websocket)
+            await connection_manager.broadcast(0, f"Client #{client_id} says: {data}")
+    except WebSocketDisconnect:
+        connection_manager.disconnect(websocket)
+        await connection_manager.broadcast(0, f"Client #{client_id} left the chat")
+
+html = """
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+    </head>
+    <body>
+        <h1>WebSocket Chat</h1>
+        <h2>Your ID: <span id="ws-id"></span></h2>
+        <form action="" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+        <script>
+            var client_id = Date.now()
+            document.querySelector("#ws-id").textContent = client_id;
+            var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
+            ws.onmessage = function(event) {
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+                var content = document.createTextNode(event.data)
+                message.appendChild(content)
+                messages.appendChild(message)
+            };
+            function sendMessage(event) {
+                var input = document.getElementById("messageText")
+                ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+        </script>
+    </body>
+</html>
+"""
+
+@app.get("/test")
+async def get():
+    return HTMLResponse(html)
