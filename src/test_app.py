@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from hello import app
 from config import databasename
+from test_fixture import game_params, game 
 
 client = TestClient(app)
 databasename = "test.sqlite"
