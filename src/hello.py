@@ -149,7 +149,7 @@ async def get_player_info(player_id: int) -> PlayerInDB:
     """
     with db_session:
         db_player = utils.validate_player(player_id)
-        player = utils.db_player_2_player_schema(db_player)
+        player = utils.db_player_2_player_schemas(db_player)
     return player
 
 @app.get("/game/{game_id}")
@@ -162,7 +162,7 @@ async def get_game_info(game_id: int) -> GameInDB:
     """
     with db_session:
         db_game = utils.validate_game(game_id)
-        players = [utils.db_player_2_player_schema(p) for p in db_game.players]
+        players = [utils.db_player_2_player_schemas(p) for p in db_game.players]
         game = utils.db_game_2_game_schema(db_game, players)
         return game
 

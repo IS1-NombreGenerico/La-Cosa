@@ -15,7 +15,7 @@ def db_player_2_player_out(db_player: Player) -> PlayerOut:
         player_name=db_player.name,
     )
 
-def db_player_2_player_schema(db_player: Player) -> PlayerInDB:
+def db_player_2_player_schemas(db_player: Player) -> PlayerInDB:
     """Converts a Player object from the database to a PlayerInDB object"""
     return PlayerInDB(
         player_id=db_player.id, 

@@ -1,7 +1,5 @@
 from entities import Game, Player, Card
 from enumerations import CardName, Kind
-import utils
-from fastapi import HTTPException
 from typing import List
 
 def playable_card(db_card: Card, db_player: Player) -> bool:
