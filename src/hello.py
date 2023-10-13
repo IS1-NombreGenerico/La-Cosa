@@ -9,6 +9,7 @@ from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
 import all_utils.play_card as play_card
 import utils
+import websocket_messages
 
 app = FastAPI()
 
@@ -373,7 +374,7 @@ html = """
 """
 
 @app.websocket("/ws/join")
-async def websocket_join(websocket: WebSocket):
+async def websocket_join(websocket: WebSocket) -> None:
     await connection_manager.connect(0, websocket)
     try:
         filter_by_availability = lambda g: g.number_of_players < g.max_players and not g.in_game
@@ -390,3 +391,50 @@ async def websocket_join(websocket: WebSocket):
         connection_manager.send_games(games)
     except WebSocketDisconnect:
         connection_manager.disconnect(websocket)
+
+@app.websocket("/ws/lobby/{game_id}")
+async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: PlayerIn) -> PlayerResponse:
+    """ Join a game
+    Input: PlayerIn
+        Information about the player and game (player name, game password)
+    -------
+    Output: PlayerResponse   
+        Information about the player (id)
+    """
+    if not player_info.player_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="EMPTY_NAME"
+        )
+
+    connection_manager.connect(game_id, websocket)
+    with db_session:
+        
+        db_game = utils.validate_game(game_id)
+
+        if db_game.in_game:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="GAME_IN_PROGRESS"
+            )
+        if db_game.number_of_players >= db_game.max_players:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="COMPLETE_QUOTE"
+            )
+        if db_game.password and db_game.password != player_info.password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INVALID_PASSWORD"
+            )
+
+        p = Player(name = player_info.player_name, game = db_game, position = db_game.number_of_players)
+        
+        db_game.players.add(p)
+        db_game.number_of_players += 1
+        flush()
+        players = [utils.db_player_2_player_schemas(p) for p in db_game.players]
+        connection_manager.send_lobby_info(game_id, utils.db_game_2_game_schema(db_game, players))
+        response = PlayerResponse(id=p.id)
+
+    return response
