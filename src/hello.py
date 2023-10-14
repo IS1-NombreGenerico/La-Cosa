@@ -323,13 +323,19 @@ async def finish_game(id_game: int) -> dict:
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await connection_manager.connect(0, websocket)
+    checks = set()
+    for connection in connection_manager.active_connections[0]:
+        print(f"Connection in manager.connections: {connection}")
+        print(f"Socket passed as argument to endpoint: {websocket}")
+        checks.add(connection == websocket)
+    assert True in checks
     try:
         while True:
             data = await websocket.receive_text()
-            await connection_manager.send_personal_message(f"You wrote: {data}", websocket)
+            await connection_manager.send_personal_message(0, f"You wrote: {data}", websocket)
             await connection_manager.broadcast(0, f"Client #{client_id} says: {data}")
     except WebSocketDisconnect:
-        connection_manager.disconnect(websocket)
+        connection_manager.disconnect(0, websocket)
         await connection_manager.broadcast(0, f"Client #{client_id} left the chat")
 
 @app.get("/test")
@@ -390,7 +396,7 @@ async def websocket_join(websocket: WebSocket) -> None:
             ]
         connection_manager.send_games(games)
     except WebSocketDisconnect:
-        connection_manager.disconnect(websocket)
+        connection_manager.disconnect(0, websocket)
 
 @app.websocket("/ws/lobby/{game_id}")
 async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: PlayerIn) -> PlayerResponse:
