@@ -34,9 +34,9 @@ class ConnectionManager:
     # Methods for listing games ("/join") communication
 
     async def send_games(self, games: list[GameOut]) -> None:
-        for game_id in self.active_connections.keys():
-            games_json = json.dumps([g.__dict__ for g in games])
-            await self.broadcast(game_id, games_json)
+        games_list_id = 0
+        games_json = json.dumps([g.__dict__ for g in games])
+        await self.broadcast(games_list_id, games_json)
     
     # Method for lobby ("join/{game_id}")communication
 
