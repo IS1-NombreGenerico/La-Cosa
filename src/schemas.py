@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from enumerations import CardName
 
 class CreateGameIn(BaseModel):
     """Create game form"""
@@ -49,6 +50,7 @@ class PlayerInDB(BaseModel):
     name: str
     game_id: int
     postition: int
+    card: List[str]
     role: str
     is_dead: bool
     in_lockdown: bool

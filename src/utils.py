@@ -23,6 +23,7 @@ def db_player_2_player_schemas(db_player: Player) -> PlayerInDB:
         game_id=db_player.game.id,
         postition=db_player.position, 
         role=db_player.role, 
+        card=hand_to_list(db_player.hand),
         is_dead=db_player.is_dead, 
         in_lockdown=db_player.in_lockdown, 
         left_barrier=db_player.left_barrier, 
@@ -198,3 +199,7 @@ def exchange_card(player1: Player, player2: Player, cardp1: Card, cardp2: Card) 
     player2.hand.remove(cardp2)
     player1.hand.add(cardp2)
     player2.hand.add(cardp1)
+
+def hand_to_list(hand: List[Card]) -> List[str]:
+    """Converts a list of cards to a list of strings"""
+    return [card.name for card in hand]
