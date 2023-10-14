@@ -227,6 +227,7 @@ def deal_cards(game_id: int):
     if theThingPlayer:
         card = random.choice(list(theThingPlayer.hand))
         cards_assigned.discard(card)
+        theThingPlayer.hand.remove(card)
         theThingPlayer.hand.add(card_theThing)
         theThingPlayer.role = Role.THING
 
