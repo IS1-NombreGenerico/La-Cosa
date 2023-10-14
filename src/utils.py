@@ -116,68 +116,14 @@ def create_deck(id_game : int):
         for i in range(cantidad):
             c = Card(name = card, kind = kind, game_deck = game)
 
-""" 
-def deal_cards(game_id: int):
-    game = validate_game(game_id)
-    cards_list = list(game.deck)
-    random.shuffle(cards_list)
-    
-    card_theThing = Card.get(name="THE_THING")
-    theThing = random.randint(1, game.number_of_players)
-    
-    cards_assigned = []  # Lista para llevar un seguimiento de las cartas asignadas
-    
-    for player in game.players:
-        num_cards = 3 if player.position == theThing else 4
-        eligible_kinds = {"ACTION", "DEFENSE"}
-
-        for _ in range(num_cards):
-            valid_cards = [card for card in cards_list if card.kind in eligible_kinds and card not in cards_assigned]
-            if valid_cards:
-                selected_card = valid_cards.pop()
-                player.hand.add(selected_card)
-                cards_assigned.append(selected_card)
-
-        if player.position == theThing:
-            player.hand.add(card_theThing)
-            cards_assigned.append(card_theThing)
-
-    # Elimina las cartas asignadas de game.deck
-    for card in cards_assigned:
-        game.deck.remove(card) """
-""" 
-def deal_cards(game_id: int):
-    game = validate_game(game_id)
-    cards_list = list(game.deck)
-    
-    card_theThing = Card.get(name="THE_THING")
-    theThing = random.randint(1, game.number_of_players)
-    
-    cards_assigned = []  # Lista para llevar un seguimiento de las cartas asignadas
-    
-    for player in game.players:
-        cards_for_player = random.sample(cards_list, 4)
-        for card in cards_for_player:
-            player.hand.add(card)
-            cards_assigned.append(card)
-
-        if player.position == theThing:
-            for card in cards_for_player:
-                player.hand.add(card)
-                player.hand.add(card_theThing)
-
-        for card in cards_for_player:
-            cards_list.remove(card)
- """
 
 def deal_cards(game_id: int):
     game = validate_game(game_id)
     cards_set = set(game.deck)
     
-    card_theThing = select(card for card in Card if card.name == "THE_THING" and card.game_deck == game).first()
-    theThing = random.sample(range(1, game.number_of_players), 1)[0]
+    card_theThing = select(card for card in Card if card.name == "La Cosa" and card.game_deck == game).first()
 
-    eligible_kinds = {"ACTION", "DEFENSE"}
+    eligible_kinds = {"Acción", "Defensa"}
     cards_assigned = set()
     
     for player in game.players:
@@ -188,15 +134,12 @@ def deal_cards(game_id: int):
             cards_assigned.add(card)
             cards_set.discard(card)
 
-    theThingPlayer = select(player for player in Player if player.position == theThing and player.game == game).first()
+    if game.players:
+        theThingPlayer = random.choice(list(game.players))
     if theThingPlayer:
-        card = None 
-        for assigned_card in cards_assigned:
-            if assigned_card.player == theThingPlayer:
-                card = assigned_card
-                break 
+        card = random.choice(list(theThingPlayer.hand))
         cards_assigned.discard(card)
         theThingPlayer.hand.add(card_theThing)
-    
+
     for card in cards_assigned:
-        game.deck.discard(card)
+        game.deck.remove(card)
