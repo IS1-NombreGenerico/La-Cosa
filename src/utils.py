@@ -2,7 +2,7 @@ from entities import Game, Player, Card
 from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut
 from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
-from pony.orm import select
+from pony.orm import select, Set
 from typing import List
 import random
 
@@ -116,7 +116,7 @@ def create_deck(id_game : int):
         for i in range(cantidad):
             c = Card(name = card, kind = kind, game_deck = game)
 
-
+""" 
 def deal_cards(game_id: int):
     game = validate_game(game_id)
     cards_list = list(game.deck)
@@ -144,7 +144,7 @@ def deal_cards(game_id: int):
 
     # Elimina las cartas asignadas de game.deck
     for card in cards_assigned:
-        game.deck.remove(card)
+        game.deck.remove(card) """
 """ 
 def deal_cards(game_id: int):
     game = validate_game(game_id)
@@ -169,3 +169,34 @@ def deal_cards(game_id: int):
         for card in cards_for_player:
             cards_list.remove(card)
  """
+
+def deal_cards(game_id: int):
+    game = validate_game(game_id)
+    cards_set = set(game.deck)
+    
+    card_theThing = select(card for card in Card if card.name == "THE_THING" and card.game_deck == game).first()
+    theThing = random.sample(range(1, game.number_of_players), 1)[0]
+
+    eligible_kinds = {"ACTION", "DEFENSE"}
+    cards_assigned = set()
+    
+    for player in game.players:
+        valid_cards = [card for card in cards_set if card.kind in eligible_kinds and card not in cards_assigned]
+        if valid_cards:
+            card = random.choice(valid_cards)
+            player.hand.add(card)
+            cards_assigned.add(card)
+            cards_set.discard(card)
+
+    theThingPlayer = select(player for player in Player if player.position == theThing and player.game == game).first()
+    if theThingPlayer:
+        card = None 
+        for assigned_card in cards_assigned:
+            if assigned_card.player == theThingPlayer:
+                card = assigned_card
+                break 
+        cards_assigned.discard(card)
+        theThingPlayer.hand.add(card_theThing)
+    
+    for card in cards_assigned:
+        game.deck.discard(card)
