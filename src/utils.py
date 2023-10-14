@@ -89,19 +89,19 @@ kind_list = [Kind.THETHING, Kind.INFECTION, Kind.ACTION, Kind.ACTION, Kind.ACTIO
              Kind.OBSTACLE, Kind.ACTION, Kind.DEFENSE, Kind.DEFENSE, Kind.DEFENSE, 
              Kind.DEFENSE, Kind.DEFENSE, Kind.OBSTACLE, Kind.PANIC, Kind.PANIC, 
              Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, 
-             Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC]
+             Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC]
 
 def get_card_deck(num_of_players : int):
     card_deck_mapping = {
-        4: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0],
-        5: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0],
-        6: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0],
-        7: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0],
-        8: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0],
-        9: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0],
-        10: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0],
-        11: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0],
-        12: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0],
+        4: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0],
+        5: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0],
+        6: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0],
+        7: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0],
+        8: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0],
+        9: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0],
+        10: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0],
+        11: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0],
+        12: [1, 8, 2, 0, 1, 4, 2, 1, 2, 1, 2, 1, 2, 10, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0]
     }
     
     return card_deck_mapping[num_of_players]
@@ -114,32 +114,58 @@ def create_deck(id_game : int):
 
     for card, cantidad, kind in zip(CardName, list_deck, kind_list):
         for i in range(cantidad):
-            c = Card(
-                name = card, 
-                kind = kind,
-                game = game,
-            )
+            c = Card(name = card, kind = kind, game_deck = game)
 
 
-def deal_cards(game : Game):
+def deal_cards(game_id: int):
+    game = validate_game(game_id)
     cards_list = list(game.deck)
     random.shuffle(cards_list)
-
+    
     card_theThing = Card.get(name="THE_THING")
     theThing = random.randint(1, game.number_of_players)
-
+    
+    cards_assigned = []  # Lista para llevar un seguimiento de las cartas asignadas
+    
     for player in game.players:
         num_cards = 3 if player.position == theThing else 4
-        eligible_kinds = {Kind.ACTION, Kind.DEFENSE}
+        eligible_kinds = {"ACTION", "DEFENSE"}
 
         for _ in range(num_cards):
-            valid_cards = [Card for Card in cards_list if Card.kind in eligible_kinds]
+            valid_cards = [card for card in cards_list if card.kind in eligible_kinds and card not in cards_assigned]
             if valid_cards:
                 selected_card = valid_cards.pop()
                 player.hand.add(selected_card)
-                game.hand.remove(selected_card)
+                cards_assigned.append(selected_card)
 
         if player.position == theThing:
             player.hand.add(card_theThing)
-            game.hand.remove(card_theThing)
-            player.role = Role.THING
+            cards_assigned.append(card_theThing)
+
+    # Elimina las cartas asignadas de game.deck
+    for card in cards_assigned:
+        game.deck.remove(card)
+""" 
+def deal_cards(game_id: int):
+    game = validate_game(game_id)
+    cards_list = list(game.deck)
+    
+    card_theThing = Card.get(name="THE_THING")
+    theThing = random.randint(1, game.number_of_players)
+    
+    cards_assigned = []  # Lista para llevar un seguimiento de las cartas asignadas
+    
+    for player in game.players:
+        cards_for_player = random.sample(cards_list, 4)
+        for card in cards_for_player:
+            player.hand.add(card)
+            cards_assigned.append(card)
+
+        if player.position == theThing:
+            for card in cards_for_player:
+                player.hand.add(card)
+                player.hand.add(card_theThing)
+
+        for card in cards_for_player:
+            cards_list.remove(card)
+ """

@@ -9,9 +9,9 @@ class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(CardName, default=CardName.THE_THING)
     description = Required(str, default="description")
-    discarded = Required(bool, default=False)
     kind = Required(Kind, default=Kind.ACTION)
-    game = Required('Game', reverse="deck")
+    game_deck = Optional('Game', reverse="deck")
+    game_discard = Optional('Game', reverse="discarded")
     player = Optional('Player', reverse="hand")
     required_players = Required(int, default=0)
 
@@ -43,6 +43,7 @@ class Game(db.Entity):
     min_players = Required(int, default=4, py_check=lambda x: x >= 4 and x <= 12)
     max_players = Required(int, default=12, py_check=lambda x: x >= 4 and x <= 12)
     deck = Set(Card)
+    discarded = Set(Card)
     number_of_players = Required(int, default=1)
 
 

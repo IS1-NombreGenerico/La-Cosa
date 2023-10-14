@@ -187,14 +187,14 @@ async def start_game(game_info: GameStart) -> bool:
         
         game.in_game = True
 
-        outplayers = shuffle_and_assign_positions(game.players)
+        shuffle_and_assign_positions(game.players)
         create_deck(game.id)
         deal_cards(game.id)
         
         return True
 
 @app.get("/{id_game}/{id_player}")
-async def get_cards(id_game: int, id_player: int) -> [CardOut]:
+async def get_cards(id_game: int, id_player: int) -> List[CardOut]:
     """Returns the cards of the player
     Input: id_game, id_player
     ---------
