@@ -194,8 +194,9 @@ async def start_game(id_game: int, id_player: int) -> dict:
         
         game.in_game = True
 
-        outplayers = utils.shuffle_and_assign_positions(game.players)
+        utils.shuffle_and_assign_positions(game.players)
         utils.create_deck(game.id)
+        utils.deal_cards(game.id)
         
         return {"message": f"Game {id_game} Started"}
     

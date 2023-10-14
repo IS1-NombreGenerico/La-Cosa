@@ -203,3 +203,32 @@ def exchange_card(player1: Player, player2: Player, cardp1: Card, cardp2: Card) 
 def hand_to_list(hand: List[Card]) -> List[str]:
     """Converts a list of cards to a list of strings"""
     return [card.name for card in hand]
+
+def deal_cards(game_id: int):
+    game = validate_game(game_id)
+    cards_set = set(game.deck)
+    
+    card_theThing = select(card for card in Card if card.name == "La Cosa" and card.game_deck == game).first()
+
+    eligible_kinds = {"Acción", "Defensa"}
+    cards_assigned = set()
+    
+    for player in game.players:
+        for _ in range(4):
+            valid_cards = [card for card in cards_set if card.kind in eligible_kinds and card not in cards_assigned]
+            if valid_cards:
+                card = random.choice(valid_cards)
+                player.hand.add(card)
+                cards_assigned.add(card)
+                cards_set.discard(card)
+
+    if game.players:
+        theThingPlayer = random.choice(list(game.players))
+    if theThingPlayer:
+        card = random.choice(list(theThingPlayer.hand))
+        cards_assigned.discard(card)
+        theThingPlayer.hand.add(card_theThing)
+        theThingPlayer.role = Role.THING
+
+    for card in cards_assigned:
+        game.deck.remove(card)
