@@ -233,3 +233,17 @@ def deal_cards(game_id: int):
 
     for card in cards_assigned:
         game.deck.remove(card)
+
+def obtain_games_available() -> list[GameOut]:
+    try:
+        filter_by_availability = lambda g: g.number_of_players < g.max_players and not g.in_game
+        games = [
+                    db_game_2_game_out(g)
+                    for g in select(
+                        g
+                        for g in Game
+                        if filter_by_availability(g)
+                    )
+                ]
+    except: raise HTTPException(status_code=404, detail="UNABLE_TO_CONNECT_DATABASE")
+    return games

@@ -60,17 +60,9 @@ async def retrieve_availables_games() -> List[GameOut]:
     Ouput: List[GameOut]
         A list of current available games
     """
-    filter_by_availability = lambda g: g.number_of_players < g.max_players and not g.in_game
 
     with db_session:
-        games = [
-            utils.db_game_2_game_out(g)
-            for g in select(
-                g
-                for g in Game
-                if filter_by_availability(g)
-            )
-        ]
+        games = utils.obtain_games_available()
     
     return games
 
@@ -249,6 +241,9 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
         match card.name: 
             case CardName.FLAMETHROWER:
                 play_card.play_flamethrower(card, player_afected)
+                connection_manager.broadcast(game.id, 
+                                            websocket_messages.InGameMessages(player_name=player.name, player_target=player_afected.name, card=card.name)
+                                            .targeted_card_played())
             case CardName.WATCH_YOUR_BACK:
                 play_card.play_watch_your_back(game, card)
             case CardName.SWAP_PLACES:
@@ -272,7 +267,6 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
                 )
         
         utils.discard_card(game, player, card)
-
         return utils.db_game_2_game_progress(game)
 
 @app.get("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
@@ -380,24 +374,47 @@ html = """
 </html>
 """
 
+@app.websocket("/ws/")
+async def websocket_create_game(websocket: WebSocket, form: CreateGameIn) -> CreateGameResponse:
+    try:
+        #Disconnect websocket from main menu group
+        ConnectionManager.disconnect(0,websocket)
+    except: raise HTTPException("Connection not found")
+    
+    if form.min_players > form.max_players:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="INVALID_SETTINGS"
+        )
+    with db_session:
+        try:
+            host = Player(name=form.player_name)
+            flush()
+            game = Game(name=form.game_name, host=host, players=[host], 
+            min_players=form.min_players, max_players=form.max_players, password=form.password)
+            flush()
+            games = utils.obtain_games_available()
+        except: raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="INVALID_SETTINGS"
+        )
+        #Connect websocket to game group
+        ConnectionManager.connect(game.id, websocket)
+        #Broadcast refresh games to main menu group
+        ConnectionManager.send_games(games)
+        response = CreateGameResponse(id=game.id, host_id=game.host.id)
+    return response
+
+
 @app.websocket("/ws/join")
-async def websocket_join(websocket: WebSocket) -> None:
+async def websocket_join(websocket: WebSocket) -> list[GameOut]:
     await connection_manager.connect(0, websocket)
     try:
-        filter_by_availability = lambda g: g.number_of_players < g.max_players and not g.in_game
-
         with db_session:
-            games = [
-                utils.db_game_2_game_out(g)
-                for g in select(
-                    g
-                    for g in Game
-                    if filter_by_availability(g)
-                )
-            ]
-        connection_manager.send_games(games)
+            games = utils.obtain_games_available()
     except WebSocketDisconnect:
         connection_manager.disconnect(0, websocket)
+    return games
 
 @app.websocket("/ws/lobby/{game_id}")
 async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: PlayerIn) -> PlayerId:
@@ -408,13 +425,15 @@ async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: P
     Output: PlayerId   
         Information about the player (id)
     """
+    connection_manager.disconnect(0, websocket)
+    connection_manager.connect(game_id, websocket)
+    
     if not player_info.player_name:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="EMPTY_NAME"
         )
 
-    connection_manager.connect(game_id, websocket)
     with db_session:
         
         db_game = utils.validate_game(game_id)
