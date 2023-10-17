@@ -1,5 +1,5 @@
 from entities import Game, Player, Card
-from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgress, PlayerResponse
+from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgress, PlayerId
 from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
 from pony.orm import select
@@ -75,9 +75,9 @@ def db_game_2_game_progress(db_game: Game) -> GameProgress:
         next_turn=db_game.current_turn,
     )
 
-def db_player_2_player_schema(db_player: Player) -> PlayerResponse:
-    """Converts a Player object from the database to a PlayerResponse object"""
-    return PlayerResponse(
+def db_player_2_player_schema(db_player: Player) -> PlayerId:
+    """Converts a Player object from the database to a PlayerId object"""
+    return PlayerId(
         id=db_player.id,
     )
 

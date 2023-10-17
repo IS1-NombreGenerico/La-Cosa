@@ -17,39 +17,39 @@ def targeted_players(db_card: Card, db_player: Player) -> List[Player]:
             return [
                     p
                     for p in db_player.game.players
-                    if p.id != db_player.id and
-                    p.turn == ((db_player.turn + 1) % db_player.game.number_of_players) or
-                    p.turn == ((db_player.turn - 1) % db_player.game.number_of_players)
+                    if p.id != db_player.id and not p.is_dead and
+                    (p.position == ((db_player.position + 1) % db_player.game.number_of_players) or
+                    p.position == ((db_player.position - 1) % db_player.game.number_of_players))
                 ]
         case CardName.SWAP_PLACES:
             return [
                     p
                     for p in db_player.game.players
-                    if p.id != db_player.id and 
-                    p.in_lockdown == False and
-                    p.left_barrier == False and 
-                    p.right_barrier == False
+                    if p.id != db_player.id and not p.in_lockdown and not p.is_dead and
+                    (p.position == ((db_player.position + 1) % db_player.game.number_of_players and not p.left_barrier) or
+                    p.position == ((db_player.position - 1) % db_player.game.number_of_players and not p.right_barrier))
+                        
             ]
         case CardName.AXE:
             return [
                     p
                     for p in db_player.game.players
-                    if p.in_lockdown == True or 
-                    p.left_barrier == True or 
-                    p.right_barrier == True
+                    if not p.is_dead and (p.in_lockdown or p.left_barrier or p.right_barrier) and 
+                    (p.position == db_player.position or
+                    p.position == ((db_player.position + 1) % db_player.game.number_of_players) or
+                    p.position == ((db_player.position - 1) % db_player.game.number_of_players))
             ]
         case CardName.SEDUCTION:
             return [
                     p
                     for p in db_player.game.players
-                    if p.id != db_player.id and
-                    p.in_lockdown == False
+                    if p.id != db_player.id and not p.in_lockdown and not p.is_dead
             ]
         case CardName.ANALYSIS:
             return [
                     p
                     for p in db_player.game.players
-                    if p.id != db_player.id and
+                    if p.id != db_player.id and not p.is_dead and
                     p.position == ((db_player.position + 1) % db_player.game.number_of_players) or
                     p.position == ((db_player.position - 1) % db_player.game.number_of_players)
                 ]            
@@ -57,45 +57,54 @@ def targeted_players(db_card: Card, db_player: Player) -> List[Player]:
             return []
 
 def implemented_card(card: Card) -> bool:
-    """Return if the card is implemented"""
-    return card.name == CardName.FLAMETHROWER
+    """Return if a action card is implemented"""
+    return ((card.name == CardName.FLAMETHROWER) or
+        (card.name == CardName.ANALYSIS) or
+        (card.name == CardName.AXE) or
+        (card.name == CardName.SUSPICION) or
+        (card.name == CardName.WHISKY) or
+        (card.name == CardName.SWAP_PLACES) or
+        (card.name == CardName.WATCH_YOUR_BACK) or
+        (card.name == CardName.SEDUCTION) or
+        (card.name == CardName.YOU_BETTER_RUN))
 
 def play_flamethrower(game: Game, player_afected: Player) -> None:
     """Plays the flamethrower card"""
     
-    #Set dead status
     player_afected.is_dead = True
-    #Discard his hand
+
     for c in player_afected.hand:
         game.discarded.add(c)
     player_afected.hand.clear()
-    #Reorganize the positions
+
     for p in game.players:
         if p.position > player_afected.position:
             p.position -= 1
 
-def play_watch_your_back(game: Game, card: Card) -> None:
+def play_watch_your_back(game: Game) -> None:
+    """Play the watch your back card"""
     game.going_clockwise = not game.going_clockwise
 
-def play_swap_places(card: Card, player: Player, player_afected: Player) -> None:
+def play_swap_places(player: Player, player_afected: Player) -> None:
+    """Play all the place swap cards"""
     player.position, player_afected.position = player_afected.position, player.position
 
-def play_you_better_run(card: Card, player_afected: Player) -> None:
+def play_change_cards(player: Player, player_afected: Player) -> None:
+    """Play all the card exchange cards"""
     pass
 
-def play_seduction(card: Card, player_afected: Player) -> None:
+def play_remove_obstacle(player_afected: Player) -> None:
+    """Plays all the remove obstacle card"""
+    # player_afected.in_lockdown = False
+    # player_afected.left_barrier = False
+    # player_afected.right_barrier = False
     pass
 
-def play_analysis(card: Card, player_afected: Player) -> None:
+def play_suspicion(player_afected: Player) -> None:
     pass
 
-def play_axe(card: Card,  player_afected: Player) -> None:
-    player_afected.in_lockdown = False
-    player_afected.left_barrier = False
-    player_afected.right_barrier = False
-
-def play_suspicion(card: Card, player_afected: Player) -> None:
+def play_whisky() -> None:
     pass
 
-def play_whisky(card: Card) -> None:
+def play_analysis() -> None:
     pass

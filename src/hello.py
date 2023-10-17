@@ -6,7 +6,7 @@ from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role, Kind, CardName
 from connection_manager import ConnectionManager
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerResponse, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
 import all_utils.play_card as play_card
 import utils
 import websocket_messages
@@ -75,12 +75,12 @@ async def retrieve_availables_games() -> List[GameOut]:
     return games
 
 @app.post("/join/{game_id}", status_code=status.HTTP_201_CREATED)
-async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
+async def join_game(game_id: int, player_info: PlayerIn) -> PlayerId:
     """ Join a game
     Input: PlayerIn
         Information about the player and game (player name, game password)
     -------
-    Output: PlayerResponse   
+    Output: PlayerId   
         Information about the player (id)
     """
     if not player_info.player_name:
@@ -115,7 +115,7 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerResponse:
         db_game.number_of_players += 1
         flush()
 
-        response = PlayerResponse(id=p.id)
+        response = PlayerId(id=p.id)
 
     return response
 
@@ -400,12 +400,12 @@ async def websocket_join(websocket: WebSocket) -> None:
         connection_manager.disconnect(0, websocket)
 
 @app.websocket("/ws/lobby/{game_id}")
-async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: PlayerIn) -> PlayerResponse:
+async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: PlayerIn) -> PlayerId:
     """ Join a game
     Input: PlayerIn
         Information about the player and game (player name, game password)
     -------
-    Output: PlayerResponse   
+    Output: PlayerId   
         Information about the player (id)
     """
     if not player_info.player_name:
@@ -442,6 +442,6 @@ async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: P
         flush()
         players = [utils.db_player_2_player_schemas(p) for p in db_game.players]
         connection_manager.send_lobby_info(game_id, utils.db_game_2_game_schema(db_game, players))
-        response = PlayerResponse(id=p.id)
+        response = PlayerId(id=p.id)
 
     return response

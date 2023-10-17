@@ -34,8 +34,13 @@ class PlayerIn(BaseModel):
     player_name: str
     password: str | None = None
 
-class PlayerResponse(BaseModel):
-    """Player creation response"""
+class CardId(BaseModel):
+    """Card id"""
+    id: int
+    player_id: int
+
+class PlayerId(BaseModel):
+    """Player id"""
     id: int
 
 class PlayerOut(BaseModel):
