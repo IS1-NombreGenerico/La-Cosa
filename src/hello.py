@@ -7,7 +7,7 @@ from entities import Player, Game
 from enumerations import Role, Kind, CardName
 from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
-import all_utils.play_card as play_card
+from all_utils.play import play_card
 import utils
 import websocket_messages
 from asyncio import gather
@@ -209,95 +209,6 @@ async def draw_card(id_game: int, id_player: int) -> bool:
         await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
         await connection_manager.broadcast(game.id, websocket_messages.InGameMessages(player_name=player.name).new_turn())
     return True
-
-@app.patch("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
-async def play_card(id_game: int, id_player: int, id_card: int, id_player_afected: int) -> GameProgress:
-    """Plays a card
-    Input: 
-        id_player_afected
-    ---------
-    Output: GameProgress
-        Information about the game progress
-    """
-
-    with db_session:
-        game = utils.validate_game(id_game)
-        player = utils.validate_player(id_player)
-        card = utils.validate_card(id_card, id_player)
-
-        if card.name == CardName.WATCH_YOUR_BACK:
-            if not (id_player_afected is None):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="INVALID_PLAY"
-                )
-        else:
-            player_afected = utils.validate_player(id_player_afected)
-
-        if player.position != game.current_turn:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="NOT_ON_TURN"
-            )
-
-        if card.kind != Kind.ACTION:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="INVALID_PLAY"
-            )
-        
-        match card.name: 
-            case CardName.FLAMETHROWER:
-                play_card.play_flamethrower(card, player_afected)
-                await connection_manager.broadcast(game.id, 
-                                            websocket_messages.InGameMessages(player_name=player.name, player_target=player_afected.name, card=card.name)
-                                            .targeted_card_played())
-            case CardName.WATCH_YOUR_BACK:
-                play_card.play_watch_your_back(game, card)
-                await connection_manager.broadcast(game.id,
-                                            websocket_messages.InGameMessages(player_name=player.name, card=card.name).card_played())
-            case CardName.SWAP_PLACES:
-                play_card.play_swap_places(card, player, player_afected)
-                await connection_manager.broadcast(game.id, 
-                                            websocket_messages.InGameMessages(player_name=player.name, player_target=player_afected.name, card=card.name)
-                                            .targeted_card_played())
-            case CardName.YOU_BETTER_RUN:
-                play_card.play_you_better_run(card, player_afected)
-                await connection_manager.broadcast(game.id, 
-                                            websocket_messages.InGameMessages(player_name=player.name, player_target=player_afected.name, card=card.name)
-                                            .targeted_card_played())
-            case CardName.SEDUCTION:
-                play_card.play_seduction(card, player_afected)
-                await connection_manager.broadcast(game.id, 
-                                            websocket_messages.InGameMessages(player_name=player.name, player_target=player_afected.name, card=card.name)
-                                            .targeted_card_played())
-            case CardName.ANALYSIS:
-                play_card.play_analysis(card, player_afected)
-                await connection_manager.broadcast(game.id, 
-                                            websocket_messages.InGameMessages(player_name=player.name, player_target=player_afected.name, card=card.name)
-                                            .targeted_card_played())
-            case CardName.AXE:
-                play_card.play_axe(card, player_afected)
-                await connection_manager.broadcast(game.id, 
-                                            websocket_messages.InGameMessages(player_name=player.name, player_target=player_afected.name, card=card.name)
-                                            .targeted_card_played())
-            case CardName.SUSPICION:
-                play_card.play_suspicion(card, player_afected)
-                await connection_manager.broadcast(game.id, 
-                                            websocket_messages.InGameMessages(player_name=player.name, player_target=player_afected.name, card=card.name)
-                                            .targeted_card_played())
-            case CardName.WHISKY:
-                play_card.play_whisky(card)
-                await connection_manager.broadcast(game.id,
-                                            websocket_messages.InGameMessages(player_name=player.name, card=card.name).card_played())
-            case _:
-                await connection_manager.broadcast(game.id,
-                                            websocket_messages.InGameMessages(player_name=player.name, card=card.name).card_played() + " (NOT IMPLEMENTED)")
-        
-        utils.discard_card(game, player, card)
-        flush()
-        await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
-        return utils.db_game_2_game_progress(game)
         
 #Prueba de websocket
 @app.websocket("/ws/{client_id}")
@@ -460,32 +371,36 @@ async def websocket_game(game_id: int, websocket: WebSocket):
             if data.event_type == "THING_ANNOUCEMENT":
                 winners = finish_game(game)
 
-                message = {
-                    "event_type" : "SHOW_RESULTS",
-                    "event_data" : winners
-                }
-
+                message = {"event_type" : "SHOW_RESULTS", "event_data" : winners}
                 await connection_manager.broadcast(game_id, message)
                 break   
 
     async def play_game():
         game = utils.validate_game(id_game)
         indexes = get_indexes(game)
-        message = {
-            "event_type" : "SEND_TURN_INDEX",
-            "event_data" : indexes
-        }
+        message = {"event_type" : "SEND_TURN_INDEX", "event_data" : indexes}
+        await connection_manager.broadcast(game_id, message)
 
         while not game_is_over(game):
-            move = await websocket.receive_text()
-            if move == "DISCARD_CARD":
-                await connection_manager.broadcast(game.id, websocket_messages.InGameMessages(player_name=player.name, card=card.name).card_played())
+            current_player = get_current_player(game)
+            card = utils.draw_card(game, current_player)
+
+            message = {"event_type" : "SEND_ASSIGN_CARDS", "event_data" : card}
+            await connection_manager.broadcast(game_id, message)
+
+            move = await websocket.receive_json()
+            if move.event_type == "DISCARD_CARD":
+                utils.discard_card(move.event_data.card)
+            elif move.event_type == "PLAY_CARD":
+                play_card(move.event_data.card, move.event_data.player)
+                utils.discard_card(move.event_data.card)
             else:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="INVALID_ACTION"
                 )
-
+        
+        db_game.delete()
 
     #Execute both coroutines
     await gather(

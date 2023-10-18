@@ -1,10 +1,10 @@
 from entities import Game, Player, Card
-from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgress, PlayerId
+from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgress, PlayerId, CardId
 from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
 from pony.orm import select
 from typing import List
-from all_utils.play_card import playable_card, targeted_players
+from all_utils.play import playable_card, targeted_players
 import random
 
 def db_player_2_player_out(db_player: Player) -> PlayerOut:
@@ -66,6 +66,13 @@ def db_card_2_card_out(db_card: Card, db_player: Player) -> CardOut:
         kind=db_card.kind,
         playable=playable_card(db_card, db_player),
         players=targeted_players(db_card, db_player),
+    )
+
+def db_card_2_card_id(db_card: Card, db_player: Player) -> CardOut:
+    """Converts a Card object from the database to a CardOut object"""
+    return CardOut(
+        id=db_card.id,
+        player=db_player.id,
     )
 
 def db_game_2_game_progress(db_game: Game) -> GameProgress:
@@ -151,7 +158,7 @@ def create_deck(id_game : int):
             )
             game.deck.add(c)
 
-def draw_card(game: Game, player: Player) -> bool:
+def draw_card(game: Game, player: Player) -> CardId:
     """Draws a card to the given player"""
     if(game.game_deck.is_empty()):
         for c in game.discarded:
@@ -160,13 +167,15 @@ def draw_card(game: Game, player: Player) -> bool:
     card = game.deck.random(1)
     player.hand.add(card)
     game.deck.remove(card)
-    return True
-    
-def discard_card(game: Game, player: Player, card: Card) -> None:
-    """Discards a card from the player's hand"""
 
+    return db_card_2_card_id(card, player)
+    
+def discard_card(db_card: CardId):
+    """Discards a card from the player's hand"""
+    player = validate_player(db_card.player)
+    card = validate_card(db_card.id, db_card.player)
     player.hand.remove(card)
-    game.discarded.add(card)
+    player.game.discarded.add(card)
 
 def exchange_card(player1: Player, player2: Player, cardp1: Card, cardp2: Card) -> None:
     """Exchanges a card from player1 to player2"""

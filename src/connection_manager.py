@@ -31,7 +31,7 @@ class ConnectionManager:
                 await websocket.send_text(message)
                 break
 
-    async def broadcast(self, game_id: int, message: json) -> None:
+    async def broadcast(self, game_id: int, message: dict) -> None:
         """Sends a message to all websockets in a specific game"""
         for conn in self.active_connections[game_id]:
             await conn.send_text(message)
