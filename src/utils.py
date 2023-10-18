@@ -95,8 +95,8 @@ def validate_player(id_player: int) -> Player:
         raise HTTPException(status_code=404, detail="INVALID_PLAYER")
     return player
 
-def validate_card(id_card: int, id_player: int ) -> Card:
-    """Validate if the card is in the player's hand and can be played"""
+def validate_card(id_card: int, id_player: int) -> Card:
+    """Verifies if the card exists in the database and is in the player's hand"""
     card = select(c for c in Card if c.id == id_card).first()
     if card is None:
         raise HTTPException(status_code=404, detail="INVALID_CARD")
@@ -161,23 +161,6 @@ def draw_card(game: Game, player: Player) -> bool:
     player.hand.add(card)
     game.deck.remove(card)
     return True
-
-def get_winners(game: Game) -> dict:
-    """Returns the winners of the game"""
-    live_players = [p for p in game.players if not p.is_dead]
-    human_players = [p for p in live_players if p.role == "HUMAN"]
-    infected_players = [p for p in live_players if p.role in ["INFECTED", "THE THING"]]
-    
-    if human_players:
-        return {"message" : "Humans Win",
-            "winners" :db_player_2_player_schema(human_players)}
-    elif len(live_players) == game.number_of_players:
-        thing_player = next((p for p in live_players if p.role == "THE THING"), None)
-        return {"message" : "Just the Thing Win",
-            "winners" : db_player_2_player_schema([thing_player] if thing_player else [])}
-    else:
-        return {"message" : "The Thing and Infecteds Win",
-            "winners" : db_player_2_player_schema(infected_players)}
     
 def discard_card(game: Game, player: Player, card: Card) -> None:
     """Discards a card from the player's hand"""
@@ -205,6 +188,7 @@ def hand_to_list(hand: List[Card]) -> List[str]:
     return [card.name for card in hand]
 
 def deal_cards(game_id: int):
+    """Deal cards to players at the begin of the game and assign the role "the thing" to one of them"""
     game = validate_game(game_id)
     cards_set = set(game.deck)
     
@@ -247,3 +231,8 @@ def obtain_games_available() -> list[GameOut]:
                 ]
     except: raise HTTPException(status_code=404, detail="UNABLE_TO_CONNECT_DATABASE")
     return games
+
+def game_data_sample(game : Game) -> GameInDB:
+    """Returns the data of a game"""
+    players = [db_player_2_player_schemas(p) for p in game.players]
+    return db_game_2_game_schema(game, players)
