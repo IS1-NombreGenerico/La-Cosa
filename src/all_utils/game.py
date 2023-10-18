@@ -1,6 +1,15 @@
 from entities import Game, Player
+from schemas import GameOut, GameProgress, PlayerId, CardId, CardOut
 from pony.orm import select
-from utils import validate_game, get winners
+from utils import validate_game, validate_player, validate_card, db_game_2_game_progress, db_card_2_card_out, game_data_sample
+
+def valid_turn(db_player: Player) -> bool:
+    """Returns if the player it's in turn"""
+    return db_player.position == db_player.game.current_turn
+
+def valid_next_turn(db_player: Player) -> bool:
+    """Returns if the player it's in turn"""
+    return db_player.position == (db_player.game.current_turn + 1 % db_player.game.number_of_players)
 
 def get_indexes(db_game: Game) -> list:
     """Returns the indexes of the players in the game"""
@@ -79,7 +88,7 @@ def retrieve_information(id_game: int, id_player:int, id_card: int) -> CardOut:
 
         return utils.db_card_2_card_out(card, player)
 
-def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
+async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
     """Discards a card from the player's hand"""
     with db_session:
         game = utils.validate_game(id_game)
@@ -91,7 +100,7 @@ def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
         await connection_manager.broadcast(game.id, websocket_messages.InGameMessages(player_name=player.name, card=card.name).discard())
     return True
 
-def exchange_card(id_game: int, id_player:int, id_card: int, id_card2: int) -> GameProgress:
+async def exchange_card(id_game: int, id_player:int, id_card: int, id_card2: int) -> GameProgress:
     """Exchange a card with a player based in the direction of turn"""
     #Se deberia checker desde el front que no sean jugadores muertos
     with db_session:

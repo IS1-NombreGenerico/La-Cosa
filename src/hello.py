@@ -8,6 +8,7 @@ from enumerations import Role, Kind, CardName
 from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
 from all_utils.play import play_card
+from all_utils.game import get_current_player, get_indexes, game_is_over, finish_game, valid_turn, valid_next_turn
 import utils
 import websocket_messages
 from asyncio import gather
@@ -388,38 +389,35 @@ async def websocket_game(game_id: int, websocket: WebSocket):
             message = {"event_type" : "SEND_ASSIGN_CARDS", "event_data" : card}
             await connection_manager.broadcast(game_id, message)
 
-            move = await websocket.receive_json()
-            if move.event_type == "DISCARD_CARD":
-                utils.discard_card(move.event_data.card)
-            elif move.event_type == "PLAY_CARD":
-                play_card(move.event_data.card, move.event_data.player)
-                utils.discard_card(move.event_data.card)
-            else:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_ACTION")
+            while True:
+                move = await websocket.receive_json()
+                if move.event_type == "DISCARD_CARD" and valid_turn(current_player):
+                    utils.discard_card(move.event_data.card)
+                    break
+                elif move.event_type == "PLAY_CARD" and valid_turn(current_player):
+                    play_card(move.event_data.card, move.event_data.player)
+                    utils.discard_card(move.event_data.card)
+                    break
             
             message = {"event_type" : "INVITE_EXCHANGE", "event_data" : db_player_2_player_id(current_player)}
             await connection_manager.broadcast(game_id, message)
             
-            exchange_fst = await websocket.receive_json()
-            if (exchange.event_type == "CHOOSE_EXCHANGES") and (exchange.event_data.id == current_player.id):
-                pass #Habría que esperar en un bucle a que se reciba el mensaje correcto
-            else:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_ACTION")
+            while True:
+                exchange_fst = await websocket.receive_json()
+                if (exchange.event_type == "CHOOSE_EXCHANGES") and valid_turn(exchange.event_data.id):
+                    pass #Habría que esperar en un bucle a que se reciba el mensaje correcto
+                    break
 
             next_player = get_current_player(game)
             message = {"event_type" : "INVITE_EXCHANGE", "event_data" : db_player_2_player_id(next_player)}
             await connection_manager.broadcast(game_id, message)
 
-            exchange_snd = await websocket.receive_json()
-            if (exchange.event_type == "CHOOSE_EXCHANGES") and (exchange.event_data.id == next_player.id):
-                pass #FirstCase
-            elif (exchange.event_type == "CHOOSE_EXCHANGE_RESPONSES") and (exchange.event_data.id == next_player.id):
-                pass #SecondCase
-            else: #Habría que esperar en un bucle a que se reciba alguno de los mensajes correctos
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_ACTION")
-            
-        
-            
+            while True:
+                exchange_snd = await websocket.receive_json()
+                if (exchange.event_type == "CHOOSE_EXCHANGES") and valid_next_turn(exchange.event_data.id):
+                    pass #FirstCase
+                elif (exchange.event_type == "CHOOSE_EXCHANGE_RESPONSES") and valid_next_turn(exchange.event_data.id):
+                    pass #SecondCase
         
         db_game.delete()
 
