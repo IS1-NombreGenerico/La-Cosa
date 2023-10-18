@@ -28,7 +28,13 @@ def db_player_2_player_schemas(db_player: Player) -> PlayerInDB:
         in_lockdown=db_player.in_lockdown, 
         left_barrier=db_player.left_barrier, 
         right_barrier=db_player.right_barrier)
-        
+
+def db_player_2_player_id(db_player: Player) -> PlayerId:
+    """Converts a Player object from the database to a PlayerId object"""
+    return PlayerId(
+        id=db_card.id,
+    )
+
 def db_game_2_game_out(db_game: Game) -> GameOut:
     """Converts a Game object from the database to a GameOut object"""
     return GameOut(
@@ -68,9 +74,9 @@ def db_card_2_card_out(db_card: Card, db_player: Player) -> CardOut:
         players=targeted_players(db_card, db_player),
     )
 
-def db_card_2_card_id(db_card: Card, db_player: Player) -> CardOut:
-    """Converts a Card object from the database to a CardOut object"""
-    return CardOut(
+def db_card_2_card_id(db_card: Card, db_player: Player) -> CardId:
+    """Converts a Card object from the database to a CardId object"""
+    return CardId(
         id=db_card.id,
         player=db_player.id,
     )

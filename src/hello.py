@@ -395,10 +395,31 @@ async def websocket_game(game_id: int, websocket: WebSocket):
                 play_card(move.event_data.card, move.event_data.player)
                 utils.discard_card(move.event_data.card)
             else:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="INVALID_ACTION"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_ACTION")
+            
+            message = {"event_type" : "INVITE_EXCHANGE", "event_data" : db_player_2_player_id(current_player)}
+            await connection_manager.broadcast(game_id, message)
+            
+            exchange_fst = await websocket.receive_json()
+            if (exchange.event_type == "CHOOSE_EXCHANGES") and (exchange.event_data.id == current_player.id):
+                pass #Habría que esperar en un bucle a que se reciba el mensaje correcto
+            else:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_ACTION")
+
+            next_player = get_current_player(game)
+            message = {"event_type" : "INVITE_EXCHANGE", "event_data" : db_player_2_player_id(next_player)}
+            await connection_manager.broadcast(game_id, message)
+
+            exchange_snd = await websocket.receive_json()
+            if (exchange.event_type == "CHOOSE_EXCHANGES") and (exchange.event_data.id == next_player.id):
+                pass #FirstCase
+            elif (exchange.event_type == "CHOOSE_EXCHANGE_RESPONSES") and (exchange.event_data.id == next_player.id):
+                pass #SecondCase
+            else: #Habría que esperar en un bucle a que se reciba alguno de los mensajes correctos
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_ACTION")
+            
+        
+            
         
         db_game.delete()
 
