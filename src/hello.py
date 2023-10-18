@@ -453,9 +453,8 @@ async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: P
 @app.websocket("/ws/{game_id}")
 async def websocket_game(game_id: int, websocket: WebSocket):
 
-    game = utils.validate_game(id_game)
-
     async def wait_thing_annoucement():
+        game = utils.validate_game(id_game)
         while True:
             data = await websocket.receive_json()
             if data.event_type == "THING_ANNOUCEMENT":
@@ -470,6 +469,7 @@ async def websocket_game(game_id: int, websocket: WebSocket):
                 break   
 
     async def play_game():
+        game = utils.validate_game(id_game)
         indexes = get_indexes(game)
         message = {
             "event_type" : "SEND_TURN_INDEX",
@@ -487,7 +487,7 @@ async def websocket_game(game_id: int, websocket: WebSocket):
                 )
 
 
-
+    #Execute both coroutines
     await gather(
         wait_thing_annoucement(),
         play_game()
