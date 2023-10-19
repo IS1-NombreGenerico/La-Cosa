@@ -247,3 +247,8 @@ def obtain_games_available() -> list[GameOut]:
                 ]
     except: raise HTTPException(status_code=404, detail="UNABLE_TO_CONNECT_DATABASE")
     return games
+
+def game_data_sample(game : Game) -> GameInDB:
+    """Returns the data of a game"""
+    players = [db_player_2_player_schemas(p) for p in game.players]
+    return db_game_2_game_schema(game, players)
