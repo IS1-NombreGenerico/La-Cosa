@@ -394,9 +394,14 @@ async def websocket_game(game_id: int, websocket: WebSocket):
                     utils.discard_card(move.event_data.card)
                     break
                 elif move.event_type == "PLAY_CARD" and valid_turn(current_player):
-                    play_card(move.event_data.card, move.event_data.player)
-                    utils.discard_card(move.event_data.card)
-                    break
+                    
+                    with db_session:
+                        card = utils.validate_card(move.event_data.card.id, move.event_data.card.player_id)
+                        player_afected = utils.validate_player(move.event_data.player.id)
+                        if (card.kind == ACTION and ((card.name == WATCH_YOUR_BACK) == (id_player_afected == None)) and player_afected in targeted_players(card, current_player)):     
+                            play_card(game, card, player_afected)
+                            utils.discard_card(move.event_data.card)
+                            break
             
             message = {"event_type" : "INVITE_EXCHANGE", "event_data" : db_player_2_player_id(current_player)}
             await connection_manager.broadcast(game_id, message)

@@ -6,7 +6,8 @@ from schemas import GameOut, GameProgress, PlayerId, CardId, CardOut
 from pony.orm import select
 from utils import validate_game, validate_player, validate_card, db_game_2_game_progress, db_card_2_card_out, game_data_sample
 from typing import List
-from utils import connection_manager, websocket_messages
+import websocket_messages
+from connection_manager import ConnectionManager
 
 def valid_turn(db_player: Player) -> bool:
     """Returns if the player it's in turn"""

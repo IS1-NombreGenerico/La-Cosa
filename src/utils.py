@@ -4,8 +4,56 @@ from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
 from pony.orm import select
 from typing import List
-from all_utils.play import playable_card, targeted_players
 import random
+
+def targeted_players(db_card: Card, db_player: Player) -> List[Player]:
+    """Returns the players that can be targeted"""
+    if playable_card(db_card, db_player) == False:
+        return []
+    
+    match db_card.name:
+        case CardName.FLAMETHROWER:
+            return [
+                    p
+                    for p in db_player.game.players
+                    if p.id != db_player.id and not p.is_dead and
+                    (p.position == ((db_player.position + 1) % db_player.game.number_of_players) or
+                    p.position == ((db_player.position - 1) % db_player.game.number_of_players))
+                ]
+        case CardName.SWAP_PLACES:
+            return [
+                    p
+                    for p in db_player.game.players
+                    if p.id != db_player.id and not p.in_lockdown and not p.is_dead and
+                    (p.position == ((db_player.position + 1) % db_player.game.number_of_players and not p.left_barrier) or
+                    p.position == ((db_player.position - 1) % db_player.game.number_of_players and not p.right_barrier))
+                        
+            ]
+        case CardName.AXE:
+            return [
+                    p
+                    for p in db_player.game.players
+                    if not p.is_dead and (p.in_lockdown or p.left_barrier or p.right_barrier) and 
+                    (p.position == db_player.position or
+                    p.position == ((db_player.position + 1) % db_player.game.number_of_players) or
+                    p.position == ((db_player.position - 1) % db_player.game.number_of_players))
+            ]
+        case CardName.SEDUCTION:
+            return [
+                    p
+                    for p in db_player.game.players
+                    if p.id != db_player.id and not p.in_lockdown and not p.is_dead
+            ]
+        case CardName.ANALYSIS:
+            return [
+                    p
+                    for p in db_player.game.players
+                    if p.id != db_player.id and not p.is_dead and
+                    p.position == ((db_player.position + 1) % db_player.game.number_of_players) or
+                    p.position == ((db_player.position - 1) % db_player.game.number_of_players)
+                ]            
+        case _:
+            return []
 
 def db_player_2_player_out(db_player: Player) -> PlayerOut:
     """Converts a Player object from the database to a PlayerOut object"""
@@ -175,7 +223,12 @@ def draw_card(game: Game, player: Player) -> CardId:
     game.deck.remove(card)
 
     return db_card_2_card_id(card, player)
+
+def playable_card(db_card: Card, db_player: Player) -> bool:
+    """Returns if the card is playable"""
     
+    return db_card.player.id == db_player.id and db_card.kind == Kind.ACTION
+
 def discard_card(db_card: CardId):
     """Discards a card from the player's hand"""
     player = validate_player(db_card.player)
