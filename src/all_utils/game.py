@@ -1,7 +1,12 @@
-from entities import Game, Player
+from entities import Game, Player, Card
+from enumerations import Role
+from pony.orm import db_session, flush
+from fastapi import HTTPException, status
 from schemas import GameOut, GameProgress, PlayerId, CardId, CardOut
 from pony.orm import select
 from utils import validate_game, validate_player, validate_card, db_game_2_game_progress, db_card_2_card_out, game_data_sample
+from typing import List
+from utils import connection_manager, websocket_messages
 
 def valid_turn(db_player: Player) -> bool:
     """Returns if the player it's in turn"""
@@ -70,9 +75,9 @@ def finish_game(db_game: Game) -> dict:
 def game_is_over(db_game) -> bool:
     """Returns if the game is over"""
     db_game = validate_game(db_game)
-    uninfected_players = select(p for p in Player if p.is_dead == False and p.role == Role.HUMAN)
+    uninfected_players = select(p for p in Player if not p.is_dead and p.role == Role.HUMAN)
     
-    return len(uninfected_players) == 0
+    return len(uninfected_players) == 0 or not game.in_game
 
 def retrieve_information(id_game: int, id_player:int, id_card: int) -> CardOut:
     """Returns information about a card

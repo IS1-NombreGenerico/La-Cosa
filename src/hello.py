@@ -1,12 +1,11 @@
-from typing import List, Optional
+from typing import List
 from fastapi import FastAPI, HTTPException, status, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
-from enumerations import Role, Kind, CardName
 from connection_manager import ConnectionManager
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, GameInDB, PlayerInDB
 from all_utils.play import play_card
 from all_utils.game import get_current_player, get_indexes, game_is_over, finish_game, valid_turn, valid_next_turn
 import utils

@@ -1,5 +1,5 @@
 from entities import Game, Player, Card
-from schemas import GameOut, GameProgress, PlayerId, CardId
+from schemas import GameOut, GameProgress, PlayerId, CardId, CardOut
 from enumerations import CardName, Kind
 from typing import List
 
