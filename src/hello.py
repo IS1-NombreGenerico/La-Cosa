@@ -101,9 +101,9 @@ async def join_game(game_id: int, player_info: PlayerIn) -> PlayerId:
             )
 
         p = Player(name = player_info.player_name, game = db_game, position = db_game.number_of_players)
-        
         db_game.players.add(p)
         db_game.number_of_players += 1
+        flush()
         response = PlayerId(id=p.id)
 
     return response
@@ -279,7 +279,13 @@ async def retrieve_information(id_game: int, id_player:int, id_card: int) -> Car
 
 @app.delete("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
-    pass
+    """Discards a card from player hand"""
+    with db_session:
+        game = utils.validate_game(id_game)
+        player = utils.validate_player(id_player)
+        card = utils.validate_card(id_card, id_player)
+        utils.discard_card(game, player, card)
+    return True
 
 @app.post("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def exchange_card(id_game: int, id_player:int, id_card1: int, id_card2: int) -> GameProgress:

@@ -35,7 +35,7 @@ class Game(db.Entity):
     name = Required(str)
     host = Required(Player, reverse="host")
     players = Set(Player)
-    current_turn = Required(int, default=0)
+    current_turn = Required(int, default=1)
     in_game = Required(bool, default=False)
     is_done = Required(bool, default=False)
     password = Optional(str)
