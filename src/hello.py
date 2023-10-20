@@ -293,8 +293,11 @@ async def exchange_card(id_game: int, id_player:int, id_card1: int, id_card2: in
     with db_session:
         game = utils.validate_game(id_game)
         player1 = utils.validate_player(id_player)
-        player2 = utils.validate_player(game.players[player1.position + 1 % game.number_of_players].id if game.going_clockwise
-                                    else game.players[player1.position - 1 % game.number_of_players].id)
+        if game.going_clockwise:
+            player2_id = select(p for p in Player if p.game == game and p.position == player1.position + 1).first().id
+        else:
+            player2_id = select(p for p in Player if p.game == game and p.position == player1.position - 1).first().id
+        player2 = utils.validate_player(player2_id)
         card1 = utils.validate_card(id_card1, id_player)
         card2 = utils.validate_card(id_card2, player2.id)
 
