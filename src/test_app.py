@@ -1,8 +1,13 @@
 import pytest
+from pony.orm import db_session, flush, select
 from fastapi.testclient import TestClient
 from hello import app
 from config import databasename
 from test_fixture import game_params, game 
+from enumerations import Role
+from entities import Player, Game
+from all_utils.play_card import play_flamethrower, play_watch_your_back
+import utils
 
 client = TestClient(app)
 databasename = "test.sqlite"
@@ -283,3 +288,41 @@ def test_verification_delete2():
     response = client.get("/join")
     assert response.status_code == 200
     assert response.json() == []
+
+@pytest.fixture
+def game():
+    with db_session:
+        p1 = Player(name="Player 1",
+                    position=2,
+                    is_dead=False)
+        p2 = Player(name="Player 2",
+                position=1,
+                is_dead=False)
+        flush()
+        g = Game(name="Game 1",
+                host=p1,
+                current_turn=1,
+                players=[p1, p2],
+                discarded = [],
+                number_of_players=2)
+        return g
+
+@pytest.mark.card_test
+def test_Lanzallamas(game):
+    with db_session:
+        game_afected = select(g for g in Game if g.id == game.id).first()
+        player1 = game.players.select(lambda p: p.name == "Player 1").first()
+        player2 = game.players.select(lambda p: p.name == "Player 2").first()
+        prev_pos = player1.position
+        play_flamethrower(game_afected, player2)
+        assert player2.is_dead == True
+        assert player1.position == prev_pos - 1
+
+@pytest.mark.card_test
+def test_watch_your_back(game):
+    with db_session:
+        game_afected = select(g for g in Game if g.id == game.id).first()
+        sentido = game_afected.going_clockwise
+        play_watch_your_back(game_afected)
+        nuevo_sentido = game_afected.going_clockwise
+        assert sentido != nuevo_sentido
