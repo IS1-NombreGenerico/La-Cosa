@@ -3,7 +3,7 @@ from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgr
 from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
 from pony.orm import select
-from typing import List
+from typing import List, Tuple
 from all_utils.play_card import playable_card, targeted_players
 import random
 
@@ -200,9 +200,10 @@ def exchange_card(player1: Player, player2: Player, cardp1: Card, cardp2: Card) 
     player1.hand.add(cardp2)
     player2.hand.add(cardp1)
 
-def hand_to_list(hand: List[Card]) -> List[str]:
-    """Converts a list of cards to a list of strings"""
-    return [card.name for card in hand]
+def hand_to_list(hand: List[Card]) -> List[Tuple[int, str]]:
+    """Converts a list of cards to a list of tuple int, strings"""
+    return [(c.id, c.name) for c in hand]
+
 
 def deal_cards(game_id: int):
     game = validate_game(game_id)
