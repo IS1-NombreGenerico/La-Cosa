@@ -55,7 +55,7 @@ class PlayerInDB(BaseModel):
     name: str
     game_id: int
     postition: int
-    card: List[str]
+    card: List[(int, str)]
     role: str
     is_dead: bool
     in_lockdown: bool
