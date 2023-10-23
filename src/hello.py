@@ -236,7 +236,7 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
         
         match card.name: 
             case CardName.FLAMETHROWER:
-                mensaje = play_card.play_flamethrower(card, player_afected)
+                play_card.play_flamethrower(game, player_afected)
             case CardName.WATCH_YOUR_BACK:
                 mensaje = play_card.play_watch_your_back(game, card)
             case CardName.SWAP_PLACES:
@@ -250,10 +250,7 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
             case CardName.WHISKY:
                 mensaje = play_card.show_cards_to_player(player)
             case _:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="INVALID_CARD"
-                )
+                pass
         
         utils.discard_card(game, player, card)
         utils.db_game_2_game_progress(game)
