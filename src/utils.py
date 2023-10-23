@@ -72,7 +72,7 @@ def db_game_2_game_progress(db_game: Game) -> GameProgress:
     """Converts a Game object from the database to a GameProgress object"""
     return GameProgress(
         is_over=db_game.is_done,
-        next_turn=db_game.current_turn,
+        in_turn=db_game.current_turn,
     )
 
 def db_player_2_player_schema(db_player: Player) -> PlayerId:
