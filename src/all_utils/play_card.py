@@ -71,16 +71,19 @@ def implemented_card(card: Card) -> bool:
 def play_flamethrower(game: Game, player_afected: Player) -> None:
     """Plays the flamethrower card"""
     
+    #Set dead status
     player_afected.is_dead = True
-
+    #Discard his hand
     for c in player_afected.hand:
         game.discarded.add(c)
     player_afected.hand.clear()
-
-    for p in game.players:
-        if p.position > player_afected.position:
-            p.position -= 1
-    game.number_of_players -= 1
+    #Reorganize the positions
+    living_players = [p for p in game.players if not p.is_dead]
+    living_players.sort(key=lambda x: x.position)
+    for (turn, player) in enumerate(living_players):
+        if player.position == game.current_turn:
+            game.current_turn = turn
+        player.position = turn
 
 def play_watch_your_back(game: Game) -> None:
     """Play the watch your back card"""
