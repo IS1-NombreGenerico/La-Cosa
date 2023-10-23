@@ -6,7 +6,7 @@ from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role, Kind, CardName
 from connection_manager import ConnectionManager
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut, PlayCardIn
 import all_utils.play_card as play_card
 import utils
 import websocket_messages
@@ -199,7 +199,7 @@ async def draw_card(id_game: int, id_player: int) -> bool:
     return True
 
 @app.patch("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
-async def play_card(id_game: int, id_player: int, id_card: int, id_player_afected: int) -> GameProgress:
+async def play_card(id_game: int, id_player: int, id_card: int, id_player_afected: int) -> dict:
     """Plays a card
     Input: 
         id_player_afected
@@ -236,23 +236,19 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
         
         match card.name: 
             case CardName.FLAMETHROWER:
-                play_card.play_flamethrower(card, player_afected)
+                mensaje = play_card.play_flamethrower(card, player_afected)
             case CardName.WATCH_YOUR_BACK:
-                play_card.play_watch_your_back(game, card)
-            case CardName.SWAP_PLACES:
-                play_card.play_swap_places(card, player, player_afected)
-            case CardName.YOU_BETTER_RUN:
-                play_card.play_you_better_run(card, player_afected)
-            case CardName.SEDUCTION:
-                play_card.play_seduction(card, player_afected)
+                mensaje = play_card.play_watch_your_back(game, card)
+            case CardName.SWAP_PLACES: ######
+                mensaje = play_card.play_swap_places(card, player, player_afected)
+            case CardName.YOU_BETTER_RUN: ######
+                mensaje = play_card.play_you_better_run(card, player_afected)
+            case CardName.SEDUCTION: #intercambiar de lugar con otra persona
+                mensaje = play_card.play_seduction(card, player_afected)
             case CardName.ANALYSIS:
-                play_card.play_analysis(card, player_afected)
-            case CardName.AXE:
-                play_card.play_axe(card, player_afected)
-            case CardName.SUSPICION:
-                play_card.play_suspicion(card, player_afected)
+                mensaje = play_card.show_cards_to_player(player_afected)
             case CardName.WHISKY:
-                play_card.play_whisky(card)
+                mensaje = play_card.show_cards_to_player(player)
             case _:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -260,7 +256,9 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
                 )
         
         utils.discard_card(game, player, card)
-        return utils.db_game_2_game_progress(game)
+        utils.db_game_2_game_progress(game)
+        return {"game_progress": utils.db_game_2_game_progress(game), 
+                "message": mensaje}
 
 @app.get("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def retrieve_information(id_game: int, id_player:int, id_card: int) -> CardOut:
