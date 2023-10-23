@@ -1,7 +1,6 @@
 from entities import Game, Player, Card
 from enumerations import CardName, Kind
-from utils import hand_to_string, players_positions
-from typing import List
+from typing import List, Tuple
 
 def playable_card(db_card: Card, db_player: Player) -> bool:
     """Returns if the card is playable"""
@@ -81,6 +80,7 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
     for p in game.players:
         if p.position > player_afected.position:
             p.position -= 1
+    game.number_of_players -= 1
 
 def play_watch_your_back(game: Game) -> None:
     """Play the watch your back card"""
@@ -100,7 +100,7 @@ def swap_places(player: Player, player_afected: Player) -> dict:
     return players_positions(player.game)
 
 def show_cards_of_player(player: Player) -> dict:
-    mensaje = hand_to_string(List(player.hand))
+    mensaje = hand_to_list(List(player.hand))
     return {"hand to player": mensaje}
 
 def play_you_better_run(player: Player, player_afected: Player) -> dict:
@@ -119,3 +119,11 @@ def play_remove_obstacle(player_afected: Player) -> None:
 
 def play_suspicion(player_afected: Player) -> None:
     pass
+
+def hand_to_list(hand: List[Card]) -> List[Tuple[int, str]]:
+    """Converts a list of cards to a list of tuple int, strings"""
+    return [(c.id, c.name) for c in hand]
+
+def players_positions(game: Game) -> List[Tuple[int, str]]:
+    """Returns the positions of the players"""
+    return [(p.position, p.name) for p in List(game.players)]

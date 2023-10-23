@@ -4,7 +4,7 @@ from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
 from pony.orm import select
 from typing import List, Tuple
-from all_utils.play_card import playable_card, targeted_players
+from all_utils.play_card import playable_card, targeted_players, hand_to_list
 import random
 
 def db_player_2_player_out(db_player: Player) -> PlayerOut:
@@ -81,10 +81,6 @@ def db_player_2_player_schema(db_player: Player) -> PlayerId:
         id=db_player.id,
     )
 
-def players_positions(game: Game) -> List[Tuple[int, str]]:
-    """Returns the positions of the players"""
-    return [(p.position, p.name) for p in List(game.players)]
-
 def validate_game(id_game: int) -> Game:
     """Verifies that a game exists in the database"""
     game = select(p for p in Game if p.id == id_game).first()
@@ -113,7 +109,7 @@ def shuffle_and_assign_positions(players) -> List[Player]:
     players_list = list(players)
     random.shuffle(players_list)
     
-    for num, player in enumerate(players_list, start=1):
+    for num, player in enumerate(players_list, start=0):
         player.position = num
         
     return players_list
@@ -203,11 +199,6 @@ def exchange_card(player1: Player, player2: Player, cardp1: Card, cardp2: Card) 
     player2.hand.remove(cardp2)
     player1.hand.add(cardp2)
     player2.hand.add(cardp1)
-
-def hand_to_list(hand: List[Card]) -> List[Tuple[int, str]]:
-    """Converts a list of cards to a list of tuple int, strings"""
-    return [(c.id, c.name) for c in hand]
-
 
 def deal_cards(game_id: int):
     game = validate_game(game_id)

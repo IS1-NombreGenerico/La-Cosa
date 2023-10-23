@@ -1,5 +1,11 @@
 from enum import Enum
 
+class Status(str, Enum):
+    WAITING = "Esperando"
+    PLAYING = "En Turno"
+    TRADING = "Intercambiando"
+    CHOICE = "Eligiendo Carta"
+
 class Kind(str, Enum):
     ACTION = "Acción"
     DEFENSE = "Defensa"

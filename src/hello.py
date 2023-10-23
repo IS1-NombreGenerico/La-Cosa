@@ -6,9 +6,9 @@ from pony.orm import db_session, select, flush
 from entities import Player, Game
 from enumerations import Role, Kind, CardName
 from connection_manager import ConnectionManager
-from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut, PlayCardIn
-import all_utils.play_card as play_card
+from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
 import utils
+import all_utils.play_card as play_card
 import websocket_messages
 
 app = FastAPI()
@@ -289,9 +289,9 @@ async def exchange_card(id_game: int, id_player:int, id_card1: int, id_card2: in
         game = utils.validate_game(id_game)
         player1 = utils.validate_player(id_player)
         if game.going_clockwise:
-            player2_id = select(p for p in Player if p.game == game and p.position == player1.position + 1).first().id
+            player2_id = select(p for p in Player if p.game == game and p.position == ((player1.position + 1) % game.number_of_players)).first().id
         else:
-            player2_id = select(p for p in Player if p.game == game and p.position == player1.position - 1).first().id
+            player2_id = select(p for p in Player if p.game == game and p.position == ((player1.position - 1) % game.number_of_players)).first().id
         player2 = utils.validate_player(player2_id)
         card1 = utils.validate_card(id_card1, id_player)
         card2 = utils.validate_card(id_card2, player2.id)
@@ -302,7 +302,6 @@ async def exchange_card(id_game: int, id_player:int, id_card1: int, id_card2: in
                 detail="INVALID_PLAY"
             )
         utils.exchange_card(player1, player2, card1, card2)
-
         return utils.db_game_2_game_progress(game)
 
 @app.delete("/{id_game}", status_code=status.HTTP_200_OK)
