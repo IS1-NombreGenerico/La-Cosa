@@ -198,7 +198,7 @@ async def draw_card(id_game: int, id_player: int) -> bool:
             return utils.draw_card(game, player)
     return True
 
-@app.patch("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
+@app.patch("/{id_game}/{id_player}/{id_card}/{id_player_afected}", status_code=status.HTTP_200_OK)
 async def play_card(id_game: int, id_player: int, id_card: int, id_player_afected: int) -> dict:
     """Plays a card
     Input: 
