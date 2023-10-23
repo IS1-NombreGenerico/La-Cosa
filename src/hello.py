@@ -8,7 +8,7 @@ from enumerations import Role, Kind, CardName
 from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
 import utils
-import all_utils.play_card as play_card
+import all_utils.play_card as card_actions
 import websocket_messages
 
 app = FastAPI()
@@ -236,19 +236,19 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
         
         match card.name: 
             case CardName.FLAMETHROWER:
-                play_card.play_flamethrower(game, player_afected)
+                card_actions.play_flamethrower(game, player_afected)
             case CardName.WATCH_YOUR_BACK:
-                mensaje = play_card.play_watch_your_back(game, card)
+                mensaje = card_actions.play_watch_your_back(game, card)
             case CardName.SWAP_PLACES:
-                mensaje = play_card.play_swap_places(card, player, player_afected)
+                mensaje = card_actions.play_swap_places(card, player, player_afected)
             case CardName.YOU_BETTER_RUN:
-                mensaje = play_card.play_you_better_run(card, player_afected)
+                mensaje = card_actions.play_you_better_run(card, player_afected)
             case CardName.SEDUCTION:
-                mensaje = play_card.play_seduction(player, frt_card, player_afected, sec_card)
+                mensaje = card_actions.play_seduction(player, frt_card, player_afected, sec_card)
             case CardName.ANALYSIS:
-                mensaje = play_card.show_cards_to_player(player_afected)
+                mensaje = card_actions.show_cards_to_player(player_afected)
             case CardName.WHISKY:
-                mensaje = play_card.show_cards_to_player(player)
+                mensaje = card_actions.show_cards_to_player(player)
             case _:
                 pass
         
