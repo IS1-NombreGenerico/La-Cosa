@@ -239,12 +239,12 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
                 mensaje = play_card.play_flamethrower(card, player_afected)
             case CardName.WATCH_YOUR_BACK:
                 mensaje = play_card.play_watch_your_back(game, card)
-            case CardName.SWAP_PLACES: ######
+            case CardName.SWAP_PLACES:
                 mensaje = play_card.play_swap_places(card, player, player_afected)
-            case CardName.YOU_BETTER_RUN: ######
+            case CardName.YOU_BETTER_RUN:
                 mensaje = play_card.play_you_better_run(card, player_afected)
-            case CardName.SEDUCTION: #intercambiar de lugar con otra persona
-                mensaje = play_card.play_seduction(card, player_afected)
+            case CardName.SEDUCTION:
+                mensaje = play_card.play_seduction(player, frt_card, player_afected, sec_card)
             case CardName.ANALYSIS:
                 mensaje = play_card.show_cards_to_player(player_afected)
             case CardName.WHISKY:

@@ -81,6 +81,10 @@ def db_player_2_player_schema(db_player: Player) -> PlayerId:
         id=db_player.id,
     )
 
+def players_positions(game: Game) -> List[Tuple[int, str]]:
+    """Returns the positions of the players"""
+    return [(p.position, p.name) for p in List(game.players)]
+
 def validate_game(id_game: int) -> Game:
     """Verifies that a game exists in the database"""
     game = select(p for p in Game if p.id == id_game).first()
@@ -253,3 +257,8 @@ def game_data_sample(game : Game) -> GameInDB:
     """Returns the data of a game"""
     players = [db_player_2_player_schemas(p) for p in game.players]
     return db_game_2_game_schema(game, players)
+
+def change_turn(game_id: int) -> None:
+    """Changes the turn of the game"""
+    game = validate_game(game_id)
+    game.current_turn = (game.current_turn + 1) % game.number_of_players
