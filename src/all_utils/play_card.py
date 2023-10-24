@@ -86,15 +86,15 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
         player.position = turn
 
 def play_watch_your_back(game: Game) -> None:
-    """Play the watch your back card"""
+    """Play the watch your back card""" 
     game.going_clockwise = not game.going_clockwise
 
-def play_swap_places(player: Player, player_afected: Player) -> dict:
-    if player_afected.position == player.position + 1 and not player_afected.left_barrier:
-        mensaje = swap_places(player, player_afected)
-    elif player_afected.position == player.position - 1 and not player_afected.right_barrier:
-        mensaje = swap_places(player, player_afected)
-    return mensaje
+def play_swap_places(game: Game, player: Player, player_afected: Player):
+    if ((player_afected.position == (player.position + 1) % game.number_of_players and not player_afected.left_barrier 
+        and not player.in_lockdown) or 
+        (player_afected.position == (player.position - 1) % game.number_of_players and 
+        not player_afected.right_barrier and not player.in_lockdown)):
+        player.position, player_afected.position = player_afected.position, player.position
 
 def swap_places(player: Player, player_afected: Player) -> dict:
     """Play all the place swap cards"""
@@ -127,6 +127,6 @@ def hand_to_list(hand: List[Card]) -> List[Tuple[int, str]]:
     """Converts a list of cards to a list of tuple int, strings"""
     return [(c.id, c.name) for c in hand]
 
-def players_positions(game: Game) -> List[Tuple[int, str]]:
+def players_positions(game: Game) -> list[Tuple[int, str]]:
     """Returns the positions of the players"""
-    return [(p.position, p.name) for p in List(game.players)]
+    return [(p.position, p.name) for p in list(game.players)]

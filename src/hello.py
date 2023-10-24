@@ -238,11 +238,11 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
             case CardName.FLAMETHROWER:
                 card_actions.play_flamethrower(game, player_afected)
             case CardName.WATCH_YOUR_BACK:
-                mensaje = card_actions.play_watch_your_back(game, card)
+                mensaje = card_actions.play_watch_your_back(game)
             case CardName.SWAP_PLACES:
-                mensaje = card_actions.play_swap_places(card, player, player_afected)
+                mensaje = card_actions.play_swap_places(game, player, player_afected)
             case CardName.YOU_BETTER_RUN:
-                mensaje = card_actions.play_you_better_run(card, player_afected)
+                mensaje = card_actions.play_you_better_run(player ,player_afected)
             case CardName.SEDUCTION:
                 mensaje = card_actions.play_seduction(player, frt_card, player_afected, sec_card)
             case CardName.ANALYSIS:

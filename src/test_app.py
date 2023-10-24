@@ -6,7 +6,7 @@ from config import databasename
 from test_fixture import game_params, game 
 from enumerations import Role
 from entities import Player, Game
-from all_utils.play_card import play_flamethrower, play_watch_your_back
+from all_utils.play_card import play_flamethrower, play_watch_your_back, play_swap_places
 import utils
 
 client = TestClient(app)
@@ -293,15 +293,15 @@ def test_verification_delete2():
 def game():
     with db_session:
         p1 = Player(name="Player 1",
-                    position=2,
+                    position=1,
                     is_dead=False)
         p2 = Player(name="Player 2",
-                position=1,
+                position=0,
                 is_dead=False)
         flush()
         g = Game(name="Game 1",
                 host=p1,
-                current_turn=1,
+                current_turn=0,
                 players=[p1, p2],
                 discarded = [],
                 number_of_players=2)
@@ -316,7 +316,7 @@ def test_Lanzallamas(game):
         prev_pos = player1.position
         play_flamethrower(game_afected, player2)
         assert player2.is_dead == True
-        assert player1.position == prev_pos - 1
+        assert player1.position == 0
 
 @pytest.mark.card_test
 def test_watch_your_back(game):
@@ -326,3 +326,15 @@ def test_watch_your_back(game):
         play_watch_your_back(game_afected)
         nuevo_sentido = game_afected.going_clockwise
         assert sentido != nuevo_sentido
+
+@pytest.mark.card_test
+def test_swap_places(game):
+    with db_session:
+        game_afected = select(g for g in Game if g.id == game.id).first()
+        player1 = game.players.select(lambda p: p.position == 1).first()
+        player2 = game.players.select(lambda p: p.position == 0).first()
+        prev_posP1 = player1.position
+        prev_posP2 = player2.position
+        play_swap_places(game, player1, player2)
+        assert player1.position == prev_posP2
+        assert player2.position == prev_posP1
