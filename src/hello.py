@@ -10,10 +10,13 @@ from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerI
 import all_utils.play_card as play_card
 import utils
 import websocket_messages
+import asyncio
 
 app = FastAPI()
 
 connection_manager = ConnectionManager()
+
+join_event = asyncio.Event()
 
 origins = ["*"]
 app.add_middleware(
@@ -325,6 +328,8 @@ async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
         await connection_manager.broadcast(game.id, websocket_messages.InGameMessages(player_name=player.name, card=card.name).discard())
     return True
 
+
+
 @app.post("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def exchange_card(id_game: int, id_player:int, id_card: int, id_card2: int) -> GameProgress:
     """Exchange a card with a player based in the direction of turn"""
@@ -342,6 +347,8 @@ async def exchange_card(id_game: int, id_player:int, id_card: int, id_card2: int
         await connection_manager.broadcast(game.id,websocket_messages.InGameMessages(player_name=player1.name, 
                                                                                     player_target=player2.name, card=card1.name).exchange())
     return utils.db_game_2_game_progress(game)
+
+
 
 @app.delete("/{id_game}", status_code=status.HTTP_200_OK)
 async def finish_game(id_game: int) -> dict:
@@ -365,8 +372,9 @@ async def finish_game(id_game: int) -> dict:
                 detail="INVALID_ACTION"
             )
         
+
 #Prueba de websocket
-@app.websocket("/ws/{client_id}")
+""" @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await connection_manager.connect(0, websocket)
     checks = set()
@@ -382,9 +390,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             await connection_manager.broadcast(0, f"Client #{client_id} says: {data}")
     except WebSocketDisconnect:
         connection_manager.disconnect(0, websocket)
-        await connection_manager.broadcast(0, f"Client #{client_id} left the chat")
+        await connection_manager.broadcast(0, f"Client #{client_id} left the chat") """
 
-@app.get("/test")
+@app.get("/")
 async def get():
     return HTMLResponse(html)
 
@@ -425,12 +433,20 @@ html = """
 </html>
 """
 
+@app.websocket("/ws/join")
+async def websocket_join(websocket: WebSocket) -> list[GameOut]:
+    await connection_manager.connect(0, websocket)
+    try:
+        with db_session:
+            games = utils.obtain_games_available()
+            await join_event.wait()
+            connection_manager.disconnect(0, websocket)
+    except WebSocketDisconnect:
+        connection_manager.disconnect(0, websocket)
+    return games
+
 @app.websocket("/ws/")
 async def websocket_create_game(websocket: WebSocket, form: CreateGameIn) -> CreateGameResponse:
-    try:
-        #Disconnect websocket from main menu group
-        connection_manager.disconnect(0,websocket)
-    except: raise HTTPException("Connection not found")
     
     if form.min_players > form.max_players:
         raise HTTPException(
@@ -444,28 +460,21 @@ async def websocket_create_game(websocket: WebSocket, form: CreateGameIn) -> Cre
             game = Game(name=form.game_name, host=host, players=[host], 
             min_players=form.min_players, max_players=form.max_players, password=form.password)
             flush()
-            games = utils.obtain_games_available()
+            games = utils.obtain_games_available()    
+            try:
+                #Disconnect websocket from main menu group
+                join_event.set()
+                await connection_manager.connect(game.id, websocket)
+                #Broadcast refresh games to main menu group
+                await connection_manager.send_games(games)
+            except: raise HTTPException("Connection not found")
+            response = CreateGameResponse(id=game.id, host_id=game.host.id)
         except: raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="INVALID_SETTINGS"
         )
-        #Connect websocket to game group
-        await connection_manager.connect(game.id, websocket)
-        #Broadcast refresh games to main menu group
-        await connection_manager.send_games(games)
-        response = CreateGameResponse(id=game.id, host_id=game.host.id)
+
     return response
-
-
-@app.websocket("/ws/join")
-async def websocket_join(websocket: WebSocket) -> list[GameOut]:
-    await connection_manager.connect(0, websocket)
-    try:
-        with db_session:
-            games = utils.obtain_games_available()
-    except WebSocketDisconnect:
-        connection_manager.disconnect(0, websocket)
-    return games
 
 @app.websocket("/ws/lobby/{game_id}")
 async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: PlayerIn) -> PlayerId:
@@ -476,8 +485,6 @@ async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: P
     Output: PlayerId   
         Information about the player (id)
     """
-    connection_manager.disconnect(0, websocket)
-    await connection_manager.connect(game_id, websocket)
     
     if not player_info.player_name:
         raise HTTPException(
@@ -505,6 +512,8 @@ async def websocket_join_game(websocket: WebSocket, game_id: int, player_info: P
                 detail="INVALID_PASSWORD"
             )
 
+        join_event.set()
+        await connection_manager.connect(game_id, websocket)
         p = Player(name = player_info.player_name, game = db_game, position = db_game.number_of_players)
         
         db_game.players.add(p)
