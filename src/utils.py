@@ -4,7 +4,7 @@ from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
 from pony.orm import select
 from typing import List, Tuple
-from all_utils.play_card import playable_card, targeted_players, hand_to_list
+from play_card import playable_card, targeted_players, hand_to_list
 import random
 
 def db_player_2_player_out(db_player: Player) -> PlayerOut:
@@ -249,7 +249,8 @@ def game_data_sample(game : Game) -> GameInDB:
     players = [db_player_2_player_schemas(p) for p in game.players]
     return db_game_2_game_schema(game, players)
 
-def change_turn(game_id: int) -> None:
+def change_turn(game_id: int) -> int:
     """Changes the turn of the game"""
     game = validate_game(game_id)
     game.current_turn = (game.current_turn + 1) % game.number_of_players
+    return game.current_turn

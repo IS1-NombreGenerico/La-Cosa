@@ -42,3 +42,36 @@ class InGameMessages(BaseMessages):
     
     def discard(self):
         return f"{self.player_name} discarded a card"
+    
+    def start_message(self):
+        return f"game {self.game_name} started"
+    
+    def host_leave(self):
+        return f"game cancel, host left the game"
+    
+
+class GameEvents(BaseMessages):
+    player_name: str
+    player_target: str | None = None
+    card: str | None = None
+    event: str
+
+    def draw_card(self):
+        envent_type = "draw_card"
+        return json.dumps({"event": envent_type, "player_name": self.player_name})
+    
+    def play_card(self):
+        envent_type = "play_card"
+        return json.dumps({"event": envent_type, "player_name": self.player_name})
+    
+    def exchange_card(self):
+        envent_type = "exchange_card"
+        return json.dumps({"event": envent_type, "player_name": self.player_name})
+    
+    def invite_exchange(self):
+        envent_type = "invite_exchange"
+        return json.dumps({"event": envent_type, "player_name": self.player_name})
+    
+    def wait(self):
+        envent_type = "wait"
+        return json.dumps({"event": envent_type, "player_name": self.player_name})

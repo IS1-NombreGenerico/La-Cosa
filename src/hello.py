@@ -8,7 +8,7 @@ from enumerations import Role, Kind, CardName
 from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
 import utils
-import all_utils.play_card as card_actions
+import play_card as card_actions
 import websocket_messages
 import asyncio
 
@@ -16,26 +16,11 @@ app = FastAPI()
 
 connection_manager = ConnectionManager()
 
-join_event = asyncio.Event()
+event_join = asyncio.Queue()
 
 @app.get("/")
 async def get():
     return HTMLResponse(html)
-
-html = """
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Chat</title>
-    </head>
-    <body>
-        <h1>WebSocket Chat</h1>
-        <script>
-            var ws = new WebSocket(`ws://localhost:8000/ws/join`);
-        </script>
-    </body>
-</html>
-"""
 
 origins = ["*"]
 app.add_middleware(
@@ -45,6 +30,54 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+html = """
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+    </head>
+    <body>
+        <h1>WebSocket Chat</h1>
+        <button id="createGameButton">Crear un juego</button> <!-- Agrega un botón con un ID -->
+        <script>
+            // Crea una nueva instancia de WebSocket
+            const ws = new WebSocket("ws://localhost:8000/ws/join");
+
+            // Agrega un evento click al botón
+            document.getElementById("createGameButton").addEventListener("click", function() {
+                var gameInfo = {
+                    game_name: "NombreDelJuego",
+                    player_name: "NombreDelJugador",
+                    min_players: 4,
+                    max_players: 7,
+                    password: "",
+                };
+
+                // Crea un objeto con los datos a enviar
+                var requestData = {
+                    websocket: ws,
+                    form: gameInfo
+                };
+
+                // Realiza una solicitud POST al endpoint /create_game
+                fetch('/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(requestData), // Envía el objeto requestData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);  // Puedes manejar la respuesta aquí
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            });
+        </script>
+    </body>
+</html>
+"""
 
 @app.post("/", status_code=status.HTTP_201_CREATED)
 async def create_game(websocket: WebSocket, form: CreateGameIn) -> CreateGameResponse:
@@ -73,11 +106,12 @@ async def create_game(websocket: WebSocket, form: CreateGameIn) -> CreateGameRes
         )
         response = CreateGameResponse(id=game.id, host_id=game.host.id)
     #setting websocket to main menu group
-    games = utils.obtain_games_available()    
+    games = utils.obtain_games_available()
     try:
-        #Disconnect websocket from main menu group
-        join_event.set()
-        await connection_manager.connect(game.id, websocket)
+        #Change connection websocket from main menu group to game
+        await event_join.put({'game_id': game.id, 'websocket': websocket})
+        #Create identifier for connection
+        await connection_manager.set_websocket(game.id, host.id, websocket)
         #Broadcast refresh games to main menu group
         await connection_manager.send_games(games)
     except: raise HTTPException("Connection not found")
@@ -133,10 +167,12 @@ async def join_game(websocket: WebSocket, game_id: int, player_info: PlayerIn) -
                 detail="INVALID_PASSWORD"
             )
 
-        join_event.set()
-        await connection_manager.connect(game_id, websocket)
-        #acá se agregaría la lógica de agregar un identificador juego-jugador
+        #Create player instance
         p = Player(name = player_info.player_name, game = db_game, position = db_game.number_of_players)
+        #Setting websocket to game group
+        await event_join.put({'game_id': game_id, 'websocket': websocket})
+        #Create indentifiers for connection
+        await connection_manager.set_websocket(game_id, p.id, websocket)
         
         db_game.players.add(p)
         db_game.number_of_players += 1
@@ -157,16 +193,22 @@ async def leave_game(id_game: int, id_player: int) -> dict:
         game = utils.validate_game(id_game)
 
         if game.host.id == id_player:
+            await connection_manager.broadcast(game.id, websocket_messages.InGameMessages.host_leave())
             players_of_game = Player.select(lambda p: p.game.id == id_game)
             for player in players_of_game:
                 player.delete()
+                #Move all connections to main menu group and delete their indentifiers
+                await connection_manager.remove_all_connection_of_game(id_game)
             return {"message": f"Game {id_game} Deleted"}
         else:
             player = utils.validate_player(id_player)
             player.delete()
             game.number_of_players -= 1
             await connection_manager.broadcast(game.id, websocket_messages.LobbyMessages(player_name=player.name, game_name=game.name).left_message())
-            #si se agrega un identificador juego-jugador acá abría que eliminarlo
+            #Move connection to main menu group and delete their indentifiers
+            websocket = connection_manager.get_websocket(id_game, player.id)
+            await connection_manager.move_connection(id_game, 0, websocket)
+            await connection_manager.delete_websocket(websocket)
             return {"message": f"Player {id_player} Deleted"}
 
 
@@ -229,6 +271,7 @@ async def start_game(id_game: int, id_player: int) -> dict:
         flush()
         await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
         await connection_manager.broadcast(game.id, websocket_messages.InGameMessages(game_name=game.name).start_message())
+        await connection_manager.broadcast(game.id, websocket_messages.GameEvents(player_name=game.players[game.current_turn].name).draw_card()) 
         return {"message": f"Game {id_game} Started"}
     
 @app.patch('/game/{id_game}/turn', status_code=status.HTTP_200_OK)
@@ -240,6 +283,11 @@ async def draw_card(id_game: int, id_player: int) -> bool:
         if(game.in_game and player.position == game.current_turn):
             utils.draw_card(game, player)
             flush()
+            await connection_manager.broadcast(game.id, websocket_messages.GameEvents(player_name=player.name).play_card())
+        elif(game.in_game and player.position != game.current_turn and len(player.hand) == 3):
+            utils.draw_card(game, player)
+            flush()
+            await connection_manager.broadcast(game.id, websocket_messages.GameEvents(player_name=player.name).wait())
         else: raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_ACTION")
         await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
         await connection_manager.broadcast(game.id, websocket_messages.InGameMessages(player_name=player.name).new_turn())
@@ -254,7 +302,6 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
     Output: GameProgress
         Information about the game progress
     """
-
     with db_session:
         game = utils.validate_game(id_game)
         player = utils.validate_player(id_player)
@@ -300,6 +347,9 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
                 pass
         
         utils.discard_card(game, player, card)
+        #se hace acá para primer probar la funcionalidad sin intercamio de cartas
+        turn = utils.change_turn(game)
+        await connection_manager.broadcast(game.id, websocket_messages.GameEvents(player_name=player.name).draw_card())
         utils.db_game_2_game_progress(game)
         return {"game_progress": utils.db_game_2_game_progress(game), 
                 "message": mensaje}
@@ -378,6 +428,7 @@ async def finish_game(id_game: int) -> dict:
             )
         flush()
         await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
+        await connection_manager.remove_all_connection_of_game(id_game)
     return response
 
 @app.websocket("/ws/join")
@@ -386,8 +437,13 @@ async def websocket_join(websocket: WebSocket):
     try:
         with db_session:
             games = utils.obtain_games_available()
-            await join_event.wait()
-            connection_manager.disconnect(0, websocket)
+            while True:
+                #Obtener a que juego se unió el jugador
+                data = await event_join.get()
+                game_id = data['game_id']
+                #Cambiar a esa conección
+                await connection_manager.move_connection(0, game_id, websocket)
     except WebSocketDisconnect:
         connection_manager.disconnect(0, websocket)
+        await connection_manager.delete_websocket(websocket)
     return games
