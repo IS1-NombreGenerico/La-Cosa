@@ -4,10 +4,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
-from enumerations import Role, Kind, CardName
+from enumerations import Event, Kind, CardName
 from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
+import json
 import utils
+import CollaborationManager as cm
 import play_card as card_actions
 import websocket_messages
 import asyncio
@@ -15,6 +17,7 @@ import asyncio
 app = FastAPI()
 
 connection_manager = ConnectionManager()
+collab_manager = cm.CollaborationManager()
 
 event_join = asyncio.Queue()
 
@@ -114,6 +117,8 @@ async def create_game(websocket: WebSocket, form: CreateGameIn) -> CreateGameRes
         await connection_manager.set_websocket(game.id, host.id, websocket)
         #Broadcast refresh games to main menu group
         await connection_manager.send_games(games)
+        #Set Collaboration Manager for game_id
+        collab_manager.init_buffer(game.id)
     except: raise HTTPException("Connection not found")
 
     return response
@@ -382,6 +387,53 @@ async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
         await connection_manager.broadcast(game.id, websocket_messages.InGameMessages(player_name=player.name, card=card.name).discard())
     
     return True
+
+@app.post("/{id_game}/{id_player}/{id_card}/start_exchange", status_code=status.HTTP_200_OK)
+async def start_exchange(id_game: int, id_player:int, id_card: int) -> None:
+    """Start a new exchange with another player
+    Input: id_game, id_player, id_card
+    ---------
+    Output: None
+    ---------
+    Websocket message:
+        Message sended to all players in same game, it containts the event "invite_exchange" with the player name that as to respond
+    """
+    with db_session:
+        game = utils.validate_game(id_game)
+        player = utils.validate_player(id_player)
+        card = utils.validate_card(id_card, id_player)
+        if game.going_clockwise:
+            player2_id = select(p for p in Player if p.game == game and p.position == ((player.position + 1) % game.number_of_players)).first().id
+        else:
+            player2_id = select(p for p in Player if p.game == game and p.position == ((player.position - 1) % game.number_of_players)).first().id
+        player2 = utils.validate_player(player2_id)
+        #Fill collaboration manager with player and card data
+        collab_manager.add_first_collaboration(game.id, {"player": player.id, "card": card.id})
+        ws_message = websocket_messages.GameEvents(player_name=player2.name, event=Event.EXCHANGE_INVITATION).invite_exchange()
+        await connection_manager.broadcast(game.id, ws_message)
+
+@app.post("/{id_game}/{id_player}/{id_card}/end_exchange", status_code=status.HTTP_200_OK)
+async def complete_exchenge(id_game: int, id_player:int, id_card: int) -> None:
+    """Complete the exchange with another player
+    Input: id_game, id_player, id_card
+    ---------
+    Output: None
+    ---------
+    Websocket message:
+        Message to all players of the same game, with the name of the next turn player
+    """
+    with db_session:
+        game = utils.validate_game(id_game)
+        player2 = utils.validate_player(id_player)
+        card2 = utils.validate_card(id_card, id_player)
+        inviter_data = collab_manager.get_just_p1_data(id_game)
+        player1 = utils.validate_player(inviter_data.get("player"))
+        card1 = utils.validate_card(inviter_data.get("card"), inviter_data.get("player"))
+        utils.exchange_card(player1, player2, card1, card2)
+        # Aca se deberia checkear si se termina o no la partida...
+        next_turn_player = utils.next_turn_player_name(game)
+        ws_message = websocket_messages.GameEvents(player_name=next_turn_player).draw_card()
+        await connection_manager.broadcast_message(game.id, ws_message)
 
 #revaluar todo este endpoint en general
 @app.post("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)

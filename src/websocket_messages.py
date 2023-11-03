@@ -1,5 +1,6 @@
 import json
 from pydantic import BaseModel
+from enumerations import Event
 
 class BaseMessages(BaseModel):
     pass
@@ -54,7 +55,7 @@ class GameEvents(BaseMessages):
     player_name: str
     player_target: str | None = None
     card: str | None = None
-    event: str
+    event: Event
 
     def draw_card(self):
         envent_type = "draw_card"

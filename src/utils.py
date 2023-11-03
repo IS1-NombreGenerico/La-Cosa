@@ -254,3 +254,15 @@ def change_turn(game_id: int) -> int:
     game = validate_game(game_id)
     game.current_turn = (game.current_turn + 1) % game.number_of_players
     return game.current_turn
+
+def next_turn_player_name(game: Game) -> str:
+    """Returns the name of the next turn player"""
+    if game.current_turn == game.number_of_players - 1 and game.going_clockwise:
+        player = select(p for p in game.players if p.position == 0 and not p.is_dead).first()
+        return player.name
+    elif game.going_clockwise:
+        player = select(p for p in game.players if p.position == game.current_turn + 1 and not p.is_dead).first()
+        return player.name
+    else:
+        player = select(p for p in game.players if p.position == game.current_turn - 1 and not p.is_dead).first()
+        return player.name
