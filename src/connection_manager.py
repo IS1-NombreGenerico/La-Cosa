@@ -1,89 +1,55 @@
-import json
 from typing import DefaultDict
 from collections import defaultdict
+import datetime
 
 from fastapi import WebSocket
 
-from schemas import GameInDB, GameOut
+from messages import *
+
+def get_time():
+    now = datetime.datetime.now()
+    return now.strftime("%Y-%m-%d %H:%M:%S")
 
 class ConnectionManager:
     # General Methods
 
     def __init__(self) -> list[(int, WebSocket)]:
-        self.active_connections: DefaultDict[int, list[WebSocket]] = defaultdict(lambda: [])
-        self.connection_players: DefaultDict[WebSocket, tuple[int, int]] = {}
     
-    async def connect(self, game_id: int, websocket: WebSocket) -> None:
+        self.user_sockets : dict[int, WebSocket] = {}
+        self.user_state: dict[int, str] = {}
+        self.socket_to_player : dict[int, int] = {}
+        self.player_to_socket : dict[int, int] = {}
+        self.player_to_game : dict[int, int] = {}
+        self.game_to_users : DefaultDict[int, list[int]] = defaultdict(lambda : [])
+        self.current_id : int = 0
+    
+    async def connect(self, game_id: int, websocket: WebSocket) -> int:
         await websocket.accept()
-        self.active_connections[game_id].append(websocket)
+        self.current_id += 1
+        self.user_sockets[self.current_id] = websocket
+        return self.current_id
 
-    def disconnect(self, game_id: int, websocket: WebSocket) -> None:
-        for socket in self.active_connections[game_id]:
-            if socket == websocket:
-                self.active_connections[game_id].remove(websocket)
-
-    async def get_websocket(self, game_id: int, player_id: int) -> WebSocket:
-        for conn in self.active_connections[game_id]:
-            if self.connection_players[conn] == (game_id, player_id):
-                return conn
-        raise Exception("Connection not found")
+    async def disconnect(self, socket_id: int) -> None:
+        del self.user_sockets[socket_id]
     
-    async def set_websocket(self, game_id: int, player_id: int, websocket: WebSocket) -> None:
-        self.connection_players[websocket] = (game_id, player_id)
-
-    async def delete_websocket(self, websocket: WebSocket) -> None:
-        del self.connection_players[websocket]
-    
-    async def send_personal_message(self, game_id: int, message: str, websocket: WebSocket) -> None:
-        for conn in self.active_connections[game_id]:
-            if conn == websocket:
-                await websocket.send_text(message)
-                break
+    async def send_personal_message(self, socket_id : int, message : str) -> None:
+        await self.user_sockets[socket_id].send_text(message)
 
     async def broadcast(self, game_id: int, message: str) -> None:
-        for conn in self.active_connections[game_id]:
-            await conn.send_text(message)
-    
-    async def join_game(self, game_id: int, websocket: WebSocket, player_id: int) -> None:
-        self.connection_players[websocket] = (game_id, player_id)
-        await self.connect(game_id, websocket)
-
-    # Methods for listing games ("/join") communication
-
-    async def send_games(self, games: list[GameOut]) -> None:
-        games_list_id = 0
-        games_json = json.dumps([g.__dict__ for g in games])
-        await self.broadcast(games_list_id, games_json)
-    
-    # Method for lobby ("join/{game_id}")communication
-
-    async def send_lobby_info(self, game_id: int, game_info: GameInDB) -> None:
-        game_info_json = json.dumps(game_info.__dict__)
-        await self.broadcast(game_id, game_info_json)
-
-    async def move_connection(self, current_game_id: int, target_game_id: int, websocket: WebSocket):
-        if current_game_id in self.active_connections and target_game_id in self.active_connections:
-            if websocket in self.active_connections[current_game_id]:
-                self.active_connections[current_game_id].remove(websocket)
-                self.active_connections[target_game_id].append(websocket)
-            else:
-                raise Exception("Connection not found in the current game")
-        else:
-            raise Exception("Invalid current or target game ID")
-
-    async def remove_all_connection_of_game(self, game_id: int) -> None:
-        if game_id in self.active_connections:
-            for conn in self.active_connections[game_id]:
-                await self.move_connection(game_id, 0, conn)
-                await self.delete_websocket(conn)
-            del self.active_connections[game_id]
-        else:
-            raise Exception("Invalid game ID")
-
-""" class CollaborationManager:
-
-    def __init__(self) -> None:
-        self.collaboration_data: DefaultDict[int, tuple[dict, dict]] = defaultdict(lambda: ({}, {}))
-    
-    def add_collaboration1(self, game_id: int, data: dict) -> None:
-        self.collaboration_data[game_id][player1] = data """
+        for user_id in self.game_to_users[game_id]:
+            await self.user_sockets[user_id].send_text(message)
+            
+    async def move_user(self, user_id: int, source: int, target: int, state: str) -> None:
+        if user_id in self.game_to_users[source]:
+            self.game_to_users[source].remove(user_id)
+        if user_id in self.socket_to_player and target == 0:
+            socket_player = self.socket_to_player[user_id]
+            del self.socket_to_player[user_id]
+            del self.player_to_socket[socket_player]
+        self.game_to_users[target].append(user_id)
+        await self.broadcast(0, f"{PULL_GAMES} {get_time()}")
+        await self.broadcast(source, f"{UPDATE_GAME} {get_time()}")
+        await self.broadcast(target, f"{UPDATE_GAME} {get_time()}")
+        self.user_state[user_id] = state
+        
+            
