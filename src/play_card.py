@@ -73,10 +73,12 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
     
     #Set dead status
     player_afected.is_dead = True
+    player_afected.position = -(player_afected.position)
     #Discard his hand
     for c in player_afected.hand:
         game.discarded.add(c)
     player_afected.hand.clear()
+    game.number_of_players -= 1
     #Reorganize the positions
     living_players = [p for p in game.players if not p.is_dead]
     living_players.sort(key=lambda x: x.position)

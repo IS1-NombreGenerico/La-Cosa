@@ -254,8 +254,5 @@ def change_turn(game_id: int) -> int:
     game = validate_game(game_id)
     game.current_turn = (game.current_turn + 1) % game.number_of_players
     player = select(p for p in game.players if p.position == game.current_turn).first()
-    while player.is_dead:
-        game.current_turn = (game.current_turn + 1) % game.number_of_players
-        player = select(p for p in game.players if p.position == game.current_turn).first()
     draw_card(game, player)
     return game.current_turn
