@@ -21,7 +21,7 @@ def db_player_2_player_schemas(db_player: Player) -> PlayerInDB:
         player_id=db_player.id, 
         name=db_player.name, 
         game_id=db_player.game.id,
-        postition=db_player.position, 
+        position=db_player.position, 
         role=db_player.role, 
         card=hand_to_list(db_player.hand),
         is_dead=db_player.is_dead, 
@@ -153,7 +153,7 @@ def create_deck(id_game : int):
 
 def draw_card(game: Game, player: Player) -> bool:
     """Draws a card to the given player"""
-    if(game.game_deck.is_empty()):
+    if(game.deck.is_empty()):
         for c in game.discarded:
             game.deck.add(c)
         game.discarded.clear()
@@ -250,7 +250,12 @@ def game_data_sample(game : Game) -> GameInDB:
     return db_game_2_game_schema(game, players)
 
 def change_turn(game_id: int) -> int:
-    """Changes the turn of the game"""
+    """Changes the turn of the game and deals a card"""
     game = validate_game(game_id)
     game.current_turn = (game.current_turn + 1) % game.number_of_players
+    player = select(p for p in game.players if p.position == game.current_turn).first()
+    while player.is_dead:
+        game.current_turn = (game.current_turn + 1) % game.number_of_players
+        player = select(p for p in game.players if p.position == game.current_turn).first()
+    draw_card(game, player)
     return game.current_turn
