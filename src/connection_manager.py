@@ -39,6 +39,9 @@ class ConnectionManager:
         for user_id in self.game_to_users[game_id]:
             await self.user_sockets[user_id].send_text(message)
             
+    async def trigger_game_update(self, game_id: int) -> None:
+        await self.broadcast(game_id, f"{UPDATE_GAME} {get_time()}")
+            
     async def move_user(self, user_id: int, source: int, target: int, state: str) -> None:
         if user_id in self.game_to_users[source]:
             self.game_to_users[source].remove(user_id)
