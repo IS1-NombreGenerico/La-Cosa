@@ -319,12 +319,13 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
             case CardName.WHISKY:
                 mensaje = card_actions.show_cards_to_player(player)
             case _:
-                pass
+                raise Exception("A non existent card name was received when playing a card")
         
         utils.discard_card(game, player, card)
         #se hace acá para primer probar la funcionalidad sin intercamio de cartas
-        turn = utils.change_turn(game)
-        await connection_manager.broadcast(game.id, websocket_messages.GameEvents(player_name=player.name).draw_card())
+        turn = utils.change_turn(id_game)
+        # broadcast updated game state
+        connection_manager.trigger_game_update(id_game)
         utils.db_game_2_game_progress(game)
         return {"game_progress": utils.db_game_2_game_progress(game), 
                 "message": mensaje}
