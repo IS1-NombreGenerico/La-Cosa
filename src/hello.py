@@ -236,8 +236,8 @@ async def start_game(id_game: int, id_player: int, id_user: int) -> dict:
         utils.shuffle_and_assign_positions(game.players)
         utils.create_deck(game.id)
         utils.deal_cards(game.id)
+        utils.change_turn(game.id)
         flush()
-        await connection_manager.broadcast(GAMES_LIST_ID, f"{PULL_GAMES} {get_time()}")
         for user in connection_manager.game_to_users[id_game]:
             await connection_manager.move_user(id_user, id_game, id_game, PLAY)
         await connection_manager.broadcast(GAMES_LIST_ID, f"{PULL_GAMES} {get_time()}")
@@ -311,10 +311,8 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
             mensaje = card_actions.show_cards_to_player(player_afected)
         if card.name == CardName.WHISKY:
             mensaje = card_actions.show_cards_to_player(player)
-        if card.name == CardName.SUSPICION:
-            mensaje = "Card is not implemented"
         else:
-            raise Exception(f"A non existent card name was received when playing a card. Card name was {card.name}")
+            mensaje = f"A non existent card name was received when playing a card. Card name was -{card.name}-"
         
         utils.discard_card(game, player, card)
         #se hace acá para primer probar la funcionalidad sin intercamio de cartas
@@ -340,19 +338,22 @@ async def retrieve_information(id_game: int, id_player:int, id_card: int) -> Car
 
         return utils.db_card_2_card_out(card, player)
 
-@app.delete("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
+@app.delete("/discard/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
     """Discards a card from player hand"""
     with db_session:
         game = utils.validate_game(id_game)
         player = utils.validate_player(id_player)
+        if player.position != game.current_turn:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="NOT_ON_TURN")
         card = utils.validate_card(id_card, id_player)
         utils.discard_card(game, player, card)
+        turn = utils.change_turn(id_game)
         flush()
-        #await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
-        #await connection_manager.broadcast(game.id, websocket_messages.InGameMessages(player_name=player.name, card=card.name).discard())
-    
-    return True
+        await connection_manager.trigger_game_update(id_game)
+        return True
 
 #revaluar todo este endpoint en general
 @app.post("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
