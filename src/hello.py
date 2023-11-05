@@ -22,6 +22,8 @@ connection_manager = ConnectionManager()
 
 event_join = asyncio.Queue()
 
+GAMES_LIST_ID = 0
+
 def get_time():
     now = datetime.datetime.now()
     return now.strftime("%Y-%m-%d %H:%M:%S")
@@ -65,12 +67,10 @@ async def create_game(user_id: int, form: CreateGameIn) -> CreateGameResponse:
             detail="INVALID_SETTINGS"
         )
         response = CreateGameResponse(id=game.id, host_id=game.host.id)
-        await connection_manager.broadcast(0, f"{PULL_GAMES} {get_time()}")
-        connection_manager.socket_to_player[user_id] = game.host.id
-        connection_manager.player_to_socket[game.host.id] = user_id
-        connection_manager.game_to_users[game.id].append(user_id)
-        connection_manager.game_to_users[0].remove(user_id)
-        connection_manager.user_state[user_id] = START
+        
+        # update connection manager
+        await connection_manager.move_user(user_id, GAMES_LIST_ID, game.id, START)
+        
     return response
 
 #HAY QUE VER SI ESTE ENDPOINT SIGUE SIEDO REALMENTE NECESARIO
@@ -131,13 +131,7 @@ async def join_game(game_id: int, user_id: int, player_info: PlayerIn) -> Player
         flush()
         
         # Update connection manager
-        connection_manager.socket_to_player[user_id] = p.id
-        connection_manager.player_to_socket[p.id] = user_id
-        connection_manager.game_to_users[game_id].append(user_id)
-        connection_manager.game_to_users[0].remove(user_id)
-        connection_manager.user_state[user_id] = START
-        await connection_manager.broadcast(0, f"{PULL_GAMES} {get_time()}")
-        await connection_manager.broadcast(game_id, f"{UPDATE_GAME} {get_time()}")
+        await connection_manager.move_user(user_id, GAMES_LIST_ID, game_id, START)
 
         # Set up the expected response
         response = PlayerId(id=p.id)
@@ -172,7 +166,7 @@ async def leave_game(id_game: int, id_player: int, id_user: int) -> dict:
                 player.delete()
             # update connection manager
             for user in connection_manager.game_to_users[id_game]:
-                await connection_manager.move_user(user, id_game, 0, JOIN)
+                await connection_manager.move_user(user, id_game, GAMES_LIST_ID, JOIN)
             
             # return response
 
@@ -181,7 +175,7 @@ async def leave_game(id_game: int, id_player: int, id_user: int) -> dict:
             player = utils.validate_player(id_player)
             player.delete()
             game.number_of_players -= 1
-            await connection_manager.move_user(id_user, id_game, 0, JOIN)
+            await connection_manager.move_user(id_user, id_game, GAMES_LIST_ID, JOIN)
             #si se agrega un identificador juego-jugador acá abría que eliminarlo
             return {"message": f"Player {id_player} Deleted"}
 
@@ -243,10 +237,10 @@ async def start_game(id_game: int, id_player: int, id_user: int) -> dict:
         utils.create_deck(game.id)
         utils.deal_cards(game.id)
         flush()
-        await connection_manager.broadcast(0, f"{PULL_GAMES} {get_time()}")
+        await connection_manager.broadcast(GAMES_LIST_ID, f"{PULL_GAMES} {get_time()}")
         for user in connection_manager.game_to_users[id_game]:
             await connection_manager.move_user(id_user, id_game, id_game, PLAY)
-        await connection_manager.broadcast(0, f"{PULL_GAMES} {get_time()}")
+        await connection_manager.broadcast(GAMES_LIST_ID, f"{PULL_GAMES} {get_time()}")
         return utils.game_data_sample(game)
     
 @app.patch('/game/{id_game}/turn', status_code=status.HTTP_200_OK)
@@ -410,10 +404,10 @@ async def finish_game(id_game: int) -> dict:
 
 @app.websocket("/ws/join")
 async def websocket_join(websocket: WebSocket):
-    user_id = await connection_manager.connect(0, websocket)
+    user_id = await connection_manager.connect(GAMES_LIST_ID, websocket)
     await websocket.send_text("USER ID: " + str(user_id))
     connection_manager.user_state[user_id] = JOIN
-    connection_manager.game_to_users[0].append(user_id) #TODO magical number 0
+    connection_manager.game_to_users[GAMES_LIST_ID].append(user_id)
     try:
         while True:
             await asyncio.sleep(0.1)    
