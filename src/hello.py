@@ -303,23 +303,24 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
                 detail="INVALID_PLAY"
             )
         
-        match card.name: 
-            case CardName.FLAMETHROWER:
-                card_actions.play_flamethrower(game, player_afected)
-            case CardName.WATCH_YOUR_BACK:
-                mensaje = card_actions.play_watch_your_back(game)
-            case CardName.SWAP_PLACES:
-                mensaje = card_actions.play_swap_places(game, player, player_afected)
-            case CardName.YOU_BETTER_RUN:
-                mensaje = card_actions.play_you_better_run(player ,player_afected)
-            case CardName.SEDUCTION:
-                mensaje = card_actions.play_seduction(player, player_afected)
-            case CardName.ANALYSIS:
-                mensaje = card_actions.show_cards_to_player(player_afected)
-            case CardName.WHISKY:
-                mensaje = card_actions.show_cards_to_player(player)
-            case _:
-                raise Exception("A non existent card name was received when playing a card")
+        if card.name == CardName.FLAMETHROWER:
+            mensaje = card_actions.play_flamethrower(game, player_afected)
+        if card.name == CardName.WATCH_YOUR_BACK:
+            mensaje = card_actions.play_watch_your_back(game)
+        if card.name == CardName.SWAP_PLACES:
+            mensaje = card_actions.play_swap_places(game, player, player_afected)
+        if card.name == CardName.YOU_BETTER_RUN:
+            mensaje = card_actions.play_you_better_run(player ,player_afected)
+        if card.name == CardName.SEDUCTION:
+            mensaje = card_actions.play_seduction(player, player_afected)
+        if card.name == CardName.ANALYSIS:
+            mensaje = card_actions.show_cards_to_player(player_afected)
+        if card.name == CardName.WHISKY:
+            mensaje = card_actions.show_cards_to_player(player)
+        if card.name == CardName.SUSPICION:
+            mensaje = "Card is not implemented"
+        else:
+            raise Exception(f"A non existent card name was received when playing a card. Card name was {card.name}")
         
         utils.discard_card(game, player, card)
         #se hace acá para primer probar la funcionalidad sin intercamio de cartas
