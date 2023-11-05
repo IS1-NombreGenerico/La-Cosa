@@ -17,9 +17,6 @@ class ConnectionManager:
     
         self.user_sockets : dict[int, WebSocket] = {}
         self.user_state: dict[int, str] = {}
-        self.socket_to_player : dict[int, int] = {}
-        self.player_to_socket : dict[int, int] = {}
-        self.player_to_game : dict[int, int] = {}
         self.game_to_users : DefaultDict[int, list[int]] = defaultdict(lambda : [])
         self.current_id : int = 0
     
@@ -45,10 +42,6 @@ class ConnectionManager:
     async def move_user(self, user_id: int, source: int, target: int, state: str) -> None:
         if user_id in self.game_to_users[source]:
             self.game_to_users[source].remove(user_id)
-        if user_id in self.socket_to_player and target == 0:
-            socket_player = self.socket_to_player[user_id]
-            del self.socket_to_player[user_id]
-            del self.player_to_socket[socket_player]
         self.game_to_users[target].append(user_id)
         await self.broadcast(0, f"{PULL_GAMES} {get_time()}")
         await self.broadcast(source, f"{UPDATE_GAME} {get_time()}")
