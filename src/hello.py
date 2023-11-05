@@ -325,7 +325,7 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
         #se hace acá para primer probar la funcionalidad sin intercamio de cartas
         turn = utils.change_turn(id_game)
         # broadcast updated game state
-        connection_manager.trigger_game_update(id_game)
+        await connection_manager.trigger_game_update(id_game)
         utils.db_game_2_game_progress(game)
         return {"game_progress": utils.db_game_2_game_progress(game), 
                 "message": mensaje}
