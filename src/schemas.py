@@ -54,7 +54,7 @@ class PlayerInDB(BaseModel):
     player_id: int
     name: str
     game_id: int
-    postition: int
+    position: int
     card: List[Tuple[int, str]]
     role: str
     is_dead: bool
