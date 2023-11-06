@@ -61,6 +61,9 @@ class PlayerInDB(BaseModel):
     in_lockdown: bool
     left_barrier: bool
     right_barrier: bool
+    exchange_offer: int
+    action: int
+    defense: int
 
 class GameInDB(BaseModel):
     """Game in database"""
@@ -76,6 +79,8 @@ class GameInDB(BaseModel):
     min_players: int
     max_players: int
     number_of_players: int
+    turn_phase: str
+    current_target: int
 
 class CardOut(BaseModel):
     """Card information"""

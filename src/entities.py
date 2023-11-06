@@ -28,6 +28,9 @@ class Player(db.Entity):
     in_lockdown = Required(bool, default=False)
     left_barrier = Required(bool, default=False)
     right_barrier = Required(bool, default=False)
+    exchange_offer = Required(int, default=-1) # Ponemos una de defensa si se requiere eso
+    action = Required(int, default=-1) # Para settear la accion con un endpoint
+    defense = Required(int, default=-1) # Para settear las defensas con un endpoint
 
 class Game(db.Entity):
     """Represent a Game in the database"""
@@ -45,7 +48,8 @@ class Game(db.Entity):
     deck = Set(Card)
     discarded = Set(Card)
     number_of_players = Required(int, default=1)
-
+    turn_phase = Required(str, default="BEGIN") # TODO validate in schemas
+    current_target = Required(int, default=-1) # TODO validate in schemas
 
 db.bind(config.database, config.databasename, create_db=True)
 db.generate_mapping(create_tables=True)
