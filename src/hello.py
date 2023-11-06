@@ -296,32 +296,42 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_PLAY"
             )
+            
+        # TODO
+        target_has_defense = False
+        card_is_autoplay = True
+            
+        if (not target_has_no_defense) or card_is_autoplay:
         
-        if card.name == CardName.FLAMETHROWER:
-            mensaje = card_actions.play_flamethrower(game, player_afected)
-        if card.name == CardName.WATCH_YOUR_BACK:
-            mensaje = card_actions.play_watch_your_back(game)
-        if card.name == CardName.SWAP_PLACES:
-            mensaje = card_actions.play_swap_places(game, player, player_afected)
-        if card.name == CardName.YOU_BETTER_RUN:
-            mensaje = card_actions.play_you_better_run(player ,player_afected)
-        if card.name == CardName.SEDUCTION:
-            mensaje = card_actions.play_seduction(player, player_afected)
-        if card.name == CardName.ANALYSIS:
-            mensaje = card_actions.show_cards_to_player(player_afected)
-        if card.name == CardName.WHISKY:
-            mensaje = card_actions.show_cards_to_player(player)
-        else:
-            mensaje = f"A non existent card name was received when playing a card. Card name was -{card.name}-"
-        
-        utils.discard_card(game, player, card)
-        #se hace acá para primer probar la funcionalidad sin intercamio de cartas
-        turn = utils.change_turn(id_game)
-        # broadcast updated game state
-        await connection_manager.trigger_game_update(id_game)
-        utils.db_game_2_game_progress(game)
-        return {"game_progress": utils.db_game_2_game_progress(game), 
-                "message": mensaje}
+            if card.name == CardName.FLAMETHROWER:
+                mensaje = card_actions.play_flamethrower(game, player_afected)
+            if card.name == CardName.WATCH_YOUR_BACK:
+                mensaje = card_actions.play_watch_your_back(game)
+            if card.name == CardName.SWAP_PLACES:
+                mensaje = card_actions.play_swap_places(game, player, player_afected)
+            if card.name == CardName.YOU_BETTER_RUN:
+                mensaje = card_actions.play_you_better_run(player ,player_afected)
+            if card.name == CardName.SEDUCTION:
+                mensaje = card_actions.play_seduction(player, player_afected)
+            if card.name == CardName.ANALYSIS:
+                mensaje = card_actions.show_cards_to_player(player_afected)
+            if card.name == CardName.WHISKY:
+                mensaje = card_actions.show_cards_to_player(player)
+            else:
+                mensaje = f"A non existent card name was received when playing a card. Card name was -{card.name}-"
+            
+            utils.discard_card(game, player, card)
+            #se hace acá para primer probar la funcionalidad sin intercamio de cartas
+            game.turn_phase = utils.EXCHANGE_OFFER
+            # broadcast updated game state
+            await connection_manager.trigger_game_update(id_game)
+            utils.db_game_2_game_progress(game)
+            return {"game_progress": utils.db_game_2_game_progress(game),
+                    "message": mensaje}
+                    
+        # TODO
+        if target_has_defense:
+            pass
 
 @app.get("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def retrieve_information(id_game: int, id_player:int, id_card: int) -> CardOut:
@@ -350,7 +360,7 @@ async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
                 detail="NOT_ON_TURN")
         card = utils.validate_card(id_card, id_player)
         utils.discard_card(game, player, card)
-        turn = utils.change_turn(id_game)
+        game.current_phase = utils.OFFER
         flush()
         await connection_manager.trigger_game_update(id_game)
         return True
@@ -402,6 +412,68 @@ async def finish_game(id_game: int) -> dict:
         #await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
         #await connection_manager.remove_all_connection_of_game(id_game)
     return response
+
+# TODO: frontend must allow players to exchange only the relevant cards
+app.post("/exchange/{game_id}/{player_id}/{card_id}")
+async def exchange_offer(game_id: int, player_id: int, card_id: int):
+    with db_session:
+    
+        game = utils.validate_game(game_id)
+        player = utils.validate_player(player_id)
+        card = utils.validate_card(card_id, player_id)
+        
+        player.exchange_offer = card_id
+        
+        player_is_offering = game.current_turn == player.position
+        player_is_responding = not player_is_offering
+        
+        if game.going_clockwise:
+            turn_shift = 1
+        else:
+            turn_shift = -1
+        
+        if player_is_offering:
+            game.current_phase = utils.EXCHANGE_RESPONSE
+            await connection_manager.trigger_game_update(id_game)
+            
+        if player_is_responding:
+        
+            exchanger = [p for p in game.players if p.position == turn].pop()
+            responder = player
+            
+            turn = game.current_turn
+            offer_id = exchanger.exchange_offer
+            response_id = responder.exchange_offer
+            offer = [c for c in exchanger.hand if c.id == offer_id].pop()
+            response = [c for c in responder.hand if c.id == response_id].pop()
+            
+            exchanger.hand.add(response)
+            responder.hand.add(offer)
+            exchanger.hand.remove(offer)
+            responder.hand.remove(response)
+            
+            utils.change_turn(game_id)
+            
+            game.current_phase = BEGIN
+            
+            await connection_manager.trigger_game_update(id_game)
+        
+        flush()
+        
+    return True
+    
+# TODO: frontend must allow players to set as defenses only the relevant cards
+# TODO: when executing the effect of an interaction, some defenses have to be removed,
+# and some do not
+app.post("/defense/{game_id}/{player_id}/{card_id}")
+async def add_defense(game_id:int, player_id: int, user_id: int):
+    with db_session:
+        player = utils.validate_player(id_player)
+        card = utils.validate_card(id_card, id_player)
+        player.defenses.add(card)
+        utils.next_phase(game_id)
+        flush()
+    return True
 
 @app.websocket("/ws/join")
 async def websocket_join(websocket: WebSocket):
