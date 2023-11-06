@@ -7,6 +7,17 @@ from typing import List, Tuple
 from play_card import playable_card, targeted_players, hand_to_list
 import random
 
+BEGIN = "BEGIN"
+DISCARD = "DISCARD"
+PLAY_ACTION = "PLAY"
+ACTION_DEFENSE_REQUEST = "ACTION_DEFENSE_REQUEST"
+PLAY_ACTION_DEFENSE = "PLAY_ACTION_DEFENSE"
+EXCHANGE_OFFER = "EXCHANGE_OFFER"
+EXCHANGE_RESPONSE = "EXCHANGE_RESPONSE"
+EXCHANGE = "EXCHANGE"
+PLAY_EXCHANGE_DEFENSE = "PLAY_EXCHANGE_DEFENSE"
+NONE = "NONE"
+
 def db_player_2_player_out(db_player: Player) -> PlayerOut:
     """Converts a Player object from the database to a PlayerOut object"""
     return PlayerOut(
@@ -27,7 +38,11 @@ def db_player_2_player_schemas(db_player: Player) -> PlayerInDB:
         is_dead=db_player.is_dead, 
         in_lockdown=db_player.in_lockdown, 
         left_barrier=db_player.left_barrier, 
-        right_barrier=db_player.right_barrier)
+        right_barrier=db_player.right_barrier,
+        exchange_offer=db_player.exchange_offer,
+        action=db_player.action,
+        defense=db_player.defense
+        )
         
 def db_game_2_game_out(db_game: Game) -> GameOut:
     """Converts a Game object from the database to a GameOut object"""
@@ -54,7 +69,9 @@ def db_game_2_game_schema(db_game: Game, players) -> GameInDB:
             going_clockwise=db_game.going_clockwise,
             min_players=db_game.min_players,
             max_players=db_game.max_players,
-            number_of_players=db_game.number_of_players
+            number_of_players=db_game.number_of_players,
+            turn_phase=db_game.turn_phase,
+            current_target=db_game.current_target
         )
 
 def db_card_2_card_out(db_card: Card, db_player: Player) -> CardOut:
@@ -121,6 +138,7 @@ kind_list = [Kind.THETHING, Kind.INFECTION, Kind.ACTION, Kind.ACTION, Kind.ACTIO
              Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, 
              Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC]
 
+# TODO: create separate deck without panic cards
 def get_card_deck(num_of_players : int):
     """Returns the list of the amount of each card given the number of players"""
     card_deck_mapping = {
@@ -181,10 +199,10 @@ def get_winners(game: Game) -> dict:
     
 def discard_card(game: Game, player: Player, card: Card) -> None:
     """Discards a card from the player's hand"""
-
     player.hand.remove(card)
     game.discarded.add(card)
 
+# TODO: duplicate code
 def exchange_card(player1: Player, player2: Player, cardp1: Card, cardp2: Card) -> None:
     """Exchanges a card from player1 to player2"""
     
@@ -255,4 +273,5 @@ def change_turn(game_id: int) -> int:
     game.current_turn = (game.current_turn + 1) % game.number_of_players
     player = select(p for p in game.players if p.position == game.current_turn).first()
     draw_card(game, player)
+    game.turn_phase = BEGIN
     return game.current_turn
