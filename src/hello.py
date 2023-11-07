@@ -324,7 +324,7 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
             turn_shift = -1
 
         player_is_offering = player.position == game.current_turn
-        player_is_responding = player.position == (game.current_turn + turn_shift)
+        player_is_responding = player.position == (game.current_turn + turn_shift) % game.number_of_players
         phase_is_offer = game.turn_phase == utils.EXCHANGE_OFFER
         phase_is_respond = game.turn_phase == utils.EXCHANGE_RESPONSE 
         player_allowed = (player_is_offering and phase_is_offer) or (player_is_responding and phase_is_respond)
