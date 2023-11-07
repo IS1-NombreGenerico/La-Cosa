@@ -310,7 +310,7 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
         if target_has_defense:
             pass
 
-app.patch("/exchange/{game_id}/{player_id}/{card_id}", status_code=status.HTTP_200_OK)
+@app.patch("/exchange/choose/card/{game_id}/{player_id}/{card_id}", status_code=status.HTTP_200_OK)
 async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
     with db_session:
 
@@ -324,7 +324,7 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
             turn_shift = -1
 
         player_is_offering = player.position == game.current_turn
-        player_is_responding = player.position == game.current_turn + turn_shift
+        player_is_responding = player.position == (game.current_turn + turn_shift)
         phase_is_offer = game.turn_phase == utils.EXCHANGE_OFFER
         phase_is_respond = game.turn_phase == utils.EXCHANGE_RESPONSE 
         player_allowed = (player_is_offering and phase_is_offer) or (player_is_responding and phase_is_respond)
@@ -332,16 +332,18 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
         if not player_allowed:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="NOT_ON_TURN"
+                detail=f"Not your turn, {player.name}"
             )
         
         player.exchange_offer = card_id
         
-        if player_is_offering:
-            game.current_phase = utils.EXCHANGE_RESPONSE
-            await connection_manager.trigger_game_update(game_id) # TODO
+        if player_is_offering and phase_is_offer:
+            game.turn_phase = utils.EXCHANGE_RESPONSE
+            await connection_manager.trigger_game_update(game_id)
+            flush()
+            return True
             
-        if player_is_responding:
+        if player_is_responding and phase_is_respond:
         
             turn = game.current_turn
             exchanger = [p for p in game.players if p.position == turn].pop()
@@ -359,13 +361,16 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
             
             utils.change_turn(game_id)
             
-            game.current_phase = utils.BEGIN
+            game.turn_phase = utils.BEGIN
             
             await connection_manager.trigger_game_update(game_id)
         
-        flush()
+            flush()
+            return True
         
-    return True
+        HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="UNREACHABLE CODE")
 
 @app.get("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def retrieve_information(id_game: int, id_player:int, id_card: int) -> CardOut:
@@ -395,7 +400,7 @@ async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
                 detail="NOT_ON_TURN")
         card = utils.validate_card(id_card, id_player)
         utils.discard_card(game, player, card)
-        game.current_phase = utils.EXCHANGE_OFFER
+        game.turn_phase = utils.EXCHANGE_OFFER
         flush()
         await connection_manager.trigger_game_update(id_game)
         return True
