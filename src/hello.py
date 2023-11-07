@@ -2,7 +2,6 @@ from typing import List, Optional
 import datetime
 
 from fastapi import FastAPI, HTTPException, status, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
@@ -13,7 +12,6 @@ from messages import *
 
 import utils
 import play_card as card_actions
-import websocket_messages
 import asyncio
 
 app = FastAPI()
@@ -262,7 +260,7 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
         else:
             player_afected = utils.validate_player(id_player_afected)
 
-        if player.position != game.current_turn:
+        if player.position != game.current_turn or game.turn_phase != utils.BEGIN:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="NOT_ON_TURN"
@@ -308,6 +306,8 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
                     
         # TODO
         if target_has_defense:
+            # set player.action
+            # change turn phase
             pass
 
 @app.patch("/exchange/choose/card/{game_id}/{player_id}/{card_id}", status_code=status.HTTP_200_OK)
@@ -394,7 +394,7 @@ async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
     with db_session:
         game = utils.validate_game(id_game)
         player = utils.validate_player(id_player)
-        if player.position != game.current_turn:
+        if player.position != game.current_turn or game.turn_phase != utils.BEGIN:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="NOT_ON_TURN")
