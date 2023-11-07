@@ -141,7 +141,20 @@ kind_list = [Kind.THETHING, Kind.INFECTION, Kind.ACTION, Kind.ACTION, Kind.ACTIO
 # TODO: create separate deck without panic cards
 def get_card_deck(num_of_players : int):
     """Returns the list of the amount of each card given the number of players"""
-    card_deck_mapping = {
+
+    limited_deck_mapping = {
+        4: [1, 8, 3, 0, 1, 4, 4, 1, 2, 1, 2, 1, 2, 1, 0, 1, 1, 1, 0],
+        5: [1, 8, 3, 1, 1, 4, 4, 1, 2, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1],
+        6: [1, 10, 3, 2, 1, 4, 5, 2, 2, 1, 3, 1, 2, 2, 2, 2, 2, 2, 1],
+        7: [1, 12, 3, 2, 1, 5, 5, 2, 3, 1, 4, 2, 3, 2, 2, 2, 2, 2, 1],
+        8: [1, 13, 3, 2, 1, 6, 5, 2, 3, 1, 5, 2, 3, 2, 3, 3, 2, 2, 1],
+        9: [1, 15, 4, 3, 2, 7, 6, 2, 4, 2, 5, 2, 4, 2, 3, 3, 2, 2, 2],
+        10: [1, 17, 4, 3, 2, 8, 7, 3, 4, 2, 6, 2, 4, 2, 3, 3, 2, 2, 2],
+        11: [1, 20, 5, 3, 2, 8, 7, 3, 5, 2, 7, 3, 5, 3, 4, 4, 3, 3, 2],
+        12: [1, 20, 5, 3, 2, 8, 7, 3, 5, 2, 7, 3, 5, 3, 4, 4, 3, 3, 2]
+    }
+
+    full_deck_mapping = {
         4: [1, 8, 3, 0, 1, 4, 4, 1, 2, 1, 2, 1, 2, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0],
         5: [1, 8, 3, 1, 1, 4, 4, 1, 2, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0],
         6: [1, 10, 3, 2, 1, 4, 5, 2, 2, 1, 3, 1, 2, 2, 2, 2, 2, 2, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0],
@@ -153,7 +166,7 @@ def get_card_deck(num_of_players : int):
         12: [1, 20, 5, 3, 2, 8, 7, 3, 5, 2, 7, 3, 5, 3, 4, 4, 3, 3, 2, 2, 1, 2, 3, 3, 3, 3, 2, 3, 2, 2, 1]
     }
     
-    return card_deck_mapping[num_of_players]
+    return limited_deck_mapping[num_of_players]
 
 def create_deck(id_game : int):
     """Creates a deck given an amount of players"""
