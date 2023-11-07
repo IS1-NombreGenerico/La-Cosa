@@ -238,28 +238,9 @@ async def start_game(id_game: int, id_player: int, id_user: int) -> dict:
             await connection_manager.move_user(id_user, id_game, id_game, PLAY)
         await connection_manager.broadcast(GAMES_LIST_ID, f"{PULL_GAMES} {get_time()}")
         return utils.game_data_sample(game)
-    
-@app.patch('/game/{id_game}/turn', status_code=status.HTTP_200_OK)
-async def draw_card(id_game: int, id_player: int) -> bool:
-    """Draws a card to the given player"""
-    with db_session:
-        game = utils.validate_game(id_game)
-        player = utils.validate_player(id_player)
-        if(game.in_game and player.position == game.current_turn):
-            utils.draw_card(game, player)
-            flush()
-            await connection_manager.broadcast(game.id, websocket_messages.GameEvents(player_name=player.name).play_card())
-        elif(game.in_game and player.position != game.current_turn and len(player.hand) == 3):
-            utils.draw_card(game, player)
-            flush()
-            await connection_manager.broadcast(game.id, websocket_messages.GameEvents(player_name=player.name).wait())
-        else: raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_ACTION")
-        await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
-        await connection_manager.broadcast(game.id, websocket_messages.InGameMessages(player_name=player.name).new_turn())
-    return True
 
-@app.patch("/{id_game}/{id_player}/{id_card}/{id_player_afected}", status_code=status.HTTP_200_OK)
-async def play_card(id_game: int, id_player: int, id_card: int, id_player_afected: int) -> dict:
+@app.patch("/{id_gamex}/{id_player}/{id_card}/{id_player_afected}", status_code=status.HTTP_200_OK)
+async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afected: int) -> dict:
     """Plays a card
     Input: 
         id_player_afected
@@ -268,7 +249,7 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
         Information about the game progress
     """
     with db_session:
-        game = utils.validate_game(id_game)
+        game = utils.validate_game(id_gamex)
         player = utils.validate_player(id_player)
         card = utils.validate_card(id_card, id_player)
 
@@ -320,7 +301,7 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
             #se hace acá para primer probar la funcionalidad sin intercamio de cartas
             game.turn_phase = utils.EXCHANGE_OFFER
             # broadcast updated game state
-            await connection_manager.trigger_game_update(id_game)
+            await connection_manager.trigger_game_update(id_gamex)
             utils.db_game_2_game_progress(game)
             return {"game_progress": utils.db_game_2_game_progress(game),
                     "message": mensaje}
@@ -328,6 +309,63 @@ async def play_card(id_game: int, id_player: int, id_card: int, id_player_afecte
         # TODO
         if target_has_defense:
             pass
+
+app.patch("/exchange/{game_id}/{player_id}/{card_id}", status_code=status.HTTP_200_OK)
+async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
+    with db_session:
+
+        game = utils.validate_game(int(game_id)) # TODO
+        player = utils.validate_player(int(player_id))
+        card = utils.validate_card(int(card_id), int(player_id))
+
+        if game.going_clockwise:
+            turn_shift = 1
+        else:
+            turn_shift = -1
+
+        player_is_offering = player.position == game.current_turn
+        player_is_responding = player.position == game.current_turn + turn_shift
+        phase_is_offer = game.turn_phase == utils.EXCHANGE_OFFER
+        phase_is_respond = game.turn_phase == utils.EXCHANGE_RESPONSE 
+        player_allowed = (player_is_offering and phase_is_offer) or (player_is_responding and phase_is_respond)
+
+        if not player_allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="NOT_ON_TURN"
+            )
+        
+        player.exchange_offer = card_id
+        
+        if player_is_offering:
+            game.current_phase = utils.EXCHANGE_RESPONSE
+            await connection_manager.trigger_game_update(game_id) # TODO
+            
+        if player_is_responding:
+        
+            turn = game.current_turn
+            exchanger = [p for p in game.players if p.position == turn].pop()
+            responder = player
+            
+            offer_id = exchanger.exchange_offer
+            offer = [c for c in exchanger.hand if c.id == offer_id].pop()
+
+            response = card
+            
+            exchanger.hand.add(response)
+            responder.hand.add(offer)
+            exchanger.hand.remove(offer)
+            responder.hand.remove(response)
+            
+            utils.change_turn(game_id)
+            
+            game.current_phase = utils.BEGIN
+            
+            await connection_manager.trigger_game_update(game_id)
+        
+        flush()
+        
+    return True
 
 @app.get("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def retrieve_information(id_game: int, id_player:int, id_card: int) -> CardOut:
@@ -343,6 +381,7 @@ async def retrieve_information(id_game: int, id_player:int, id_card: int) -> Car
         card = utils.validate_card(id_card, id_player)
 
         return utils.db_card_2_card_out(card, player)
+
 
 @app.delete("/discard/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
@@ -385,55 +424,11 @@ async def finish_game(id_game: int) -> dict:
         #await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
         #await connection_manager.remove_all_connection_of_game(id_game)
     return response
-
-# TODO: frontend must allow players to exchange only the relevant cards
-app.patch("/exchange/{game_id}/{player_id}/{card_id}") 
-async def exchange_offer(game_id: int, player_id: int, card_id: int) -> dict:
-    with db_session:
-    
-        game = utils.validate_game(game_id)
-        player = utils.validate_player(player_id)
-        card = utils.validate_card(card_id, player_id)
-        
-        player.exchange_offer = card_id
-        
-        player_is_offering = game.current_turn == player.position
-        player_is_responding = not player_is_offering
-        
-        if player_is_offering:
-            game.current_phase = utils.EXCHANGE_RESPONSE
-            await connection_manager.trigger_game_update(game_id)
-            
-        if player_is_responding:
-        
-            turn = game.current_turn
-            exchanger = [p for p in game.players if p.position == turn].pop()
-            responder = player
-            
-            offer_id = exchanger.exchange_offer
-            offer = [c for c in exchanger.hand if c.id == offer_id].pop()
-
-            response = card
-            
-            exchanger.hand.add(response)
-            responder.hand.add(offer)
-            exchanger.hand.remove(offer)
-            responder.hand.remove(response)
-            
-            utils.change_turn(game_id)
-            
-            game.current_phase = utils.BEGIN
-            
-            await connection_manager.trigger_game_update(game_id)
-        
-        flush()
-        
-    return {"message": f"Exchanged card is {str(card_id)}"}
     
 # TODO: frontend must allow players to set as defenses only the relevant cards
 # TODO: when executing the effect of an interaction, some defenses have to be removed,
 # and some do not
-app.post("/defense/{game_id}/{player_id}/{card_id}")
+app.post("/defense/{game_id}/{player_id}/{card_id}", status_code=status.HTTP_200_OK)
 async def add_defense(game_id:int, player_id: int, card_id: int):
     with db_session:
         player = utils.validate_player(player_id)
