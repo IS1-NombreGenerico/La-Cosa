@@ -14,6 +14,7 @@ class Card(db.Entity):
     game_discard = Optional('Game', reverse="discarded")
     player = Optional('Player', reverse="hand")
     required_players = Required(int, default=0)
+    active_infection = Required(bool, default=False)
 
 class Player(db.Entity):
     """Represent a Player in the database"""

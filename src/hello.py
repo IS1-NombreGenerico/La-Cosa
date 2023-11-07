@@ -335,6 +335,18 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
                 detail=f"Not your turn, {player.name}"
             )
         
+        player_is_the_thing = player.role == Role.THING
+        infection = card.name == CardName.INFECTED
+        
+        if infection and not player_is_the_thing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Only the thing can exchange infection cards, {player.name}"
+            )
+        
+        if infection:
+            card.active_infection = True
+        
         player.exchange_offer = card_id
         
         if player_is_offering and phase_is_offer:
@@ -358,6 +370,9 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
             responder.hand.add(offer)
             exchanger.hand.remove(offer)
             responder.hand.remove(response)
+
+            if card.active_infection:
+                responder.role = Role.INFECTED
             
             utils.change_turn(game_id)
             
@@ -397,8 +412,16 @@ async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
         if player.position != game.current_turn or game.turn_phase != Status.BEGIN:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="NOT_ON_TURN")
+                detail="It is either not your turn, or you're not in discard phase, {player.name}"
+                )
         card = utils.validate_card(id_card, id_player)
+
+        if card.active_infection:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"You cannot get rid of your infection, {player.name}!"
+                )
+
         utils.discard_card(game, player, card)
         game.turn_phase = Status.EXCHANGE_OFFER
         flush()
