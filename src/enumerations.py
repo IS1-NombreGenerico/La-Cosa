@@ -1,10 +1,16 @@
 from enum import Enum
 
 class Status(str, Enum):
-    WAITING = "Esperando"
-    PLAYING = "En Turno"
-    TRADING = "Intercambiando"
-    CHOICE = "Eligiendo Carta"
+    BEGIN = "BEGIN"
+    DISCARD = "DISCARD"
+    PLAY_ACTION = "PLAY"
+    ACTION_DEFENSE_REQUEST = "ACTION_DEFENSE_REQUEST"
+    PLAY_ACTION_DEFENSE = "PLAY_ACTION_DEFENSE"
+    EXCHANGE_OFFER = "EXCHANGE_OFFER"
+    EXCHANGE_RESPONSE = "EXCHANGE_RESPONSE"
+    EXCHANGE = "EXCHANGE"
+    PLAY_EXCHANGE_DEFENSE = "PLAY_EXCHANGE_DEFENSE"
+    NONE = "NONE"
 
 class Kind(str, Enum):
     ACTION = "Acción"

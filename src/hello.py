@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, status, WebSocket, WebSocketDisconne
 from fastapi.middleware.cors import CORSMiddleware
 from pony.orm import db_session, select, flush
 from entities import Player, Game
-from enumerations import Role, Kind, CardName
+from enumerations import Role, Kind, CardName, Status
 from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
 from messages import *
@@ -260,7 +260,7 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
         else:
             player_afected = utils.validate_player(id_player_afected)
 
-        if player.position != game.current_turn or game.turn_phase != utils.BEGIN:
+        if player.position != game.current_turn or game.turn_phase != Status.BEGIN:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="NOT_ON_TURN"
@@ -297,7 +297,7 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
             
             utils.discard_card(game, player, card)
             #se hace acá para primer probar la funcionalidad sin intercamio de cartas
-            game.turn_phase = utils.EXCHANGE_OFFER
+            game.turn_phase = Status.EXCHANGE_OFFER
             # broadcast updated game state
             await connection_manager.trigger_game_update(id_gamex)
             utils.db_game_2_game_progress(game)
@@ -325,8 +325,8 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
 
         player_is_offering = player.position == game.current_turn
         player_is_responding = player.position == (game.current_turn + turn_shift) % game.number_of_players
-        phase_is_offer = game.turn_phase == utils.EXCHANGE_OFFER
-        phase_is_respond = game.turn_phase == utils.EXCHANGE_RESPONSE 
+        phase_is_offer = game.turn_phase == Status.EXCHANGE_OFFER
+        phase_is_respond = game.turn_phase == Status.EXCHANGE_RESPONSE 
         player_allowed = (player_is_offering and phase_is_offer) or (player_is_responding and phase_is_respond)
 
         if not player_allowed:
@@ -338,7 +338,7 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
         player.exchange_offer = card_id
         
         if player_is_offering and phase_is_offer:
-            game.turn_phase = utils.EXCHANGE_RESPONSE
+            game.turn_phase = Status.EXCHANGE_RESPONSE
             await connection_manager.trigger_game_update(game_id)
             flush()
             return True
@@ -361,7 +361,7 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
             
             utils.change_turn(game_id)
             
-            game.turn_phase = utils.BEGIN
+            game.turn_phase = Status.BEGIN
             
             await connection_manager.trigger_game_update(game_id)
         
@@ -394,13 +394,13 @@ async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
     with db_session:
         game = utils.validate_game(id_game)
         player = utils.validate_player(id_player)
-        if player.position != game.current_turn or game.turn_phase != utils.BEGIN:
+        if player.position != game.current_turn or game.turn_phase != Status.BEGIN:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="NOT_ON_TURN")
         card = utils.validate_card(id_card, id_player)
         utils.discard_card(game, player, card)
-        game.turn_phase = utils.EXCHANGE_OFFER
+        game.turn_phase = Status.EXCHANGE_OFFER
         flush()
         await connection_manager.trigger_game_update(id_game)
         return True

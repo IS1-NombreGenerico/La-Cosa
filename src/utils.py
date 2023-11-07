@@ -1,22 +1,11 @@
 from entities import Game, Player, Card
 from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgress, PlayerId
-from enumerations import CardName, Kind, Role
+from enumerations import CardName, Kind, Role, Status
 from fastapi import HTTPException
 from pony.orm import select
 from typing import List, Tuple
 from play_card import playable_card, targeted_players, hand_to_list
 import random
-
-BEGIN = "BEGIN"
-DISCARD = "DISCARD"
-PLAY_ACTION = "PLAY"
-ACTION_DEFENSE_REQUEST = "ACTION_DEFENSE_REQUEST"
-PLAY_ACTION_DEFENSE = "PLAY_ACTION_DEFENSE"
-EXCHANGE_OFFER = "EXCHANGE_OFFER"
-EXCHANGE_RESPONSE = "EXCHANGE_RESPONSE"
-EXCHANGE = "EXCHANGE"
-PLAY_EXCHANGE_DEFENSE = "PLAY_EXCHANGE_DEFENSE"
-NONE = "NONE"
 
 def db_player_2_player_out(db_player: Player) -> PlayerOut:
     """Converts a Player object from the database to a PlayerOut object"""
@@ -286,5 +275,5 @@ def change_turn(game_id: int) -> int:
     game.current_turn = (game.current_turn + 1) % game.number_of_players
     player = select(p for p in game.players if p.position == game.current_turn).first()
     draw_card(game, player)
-    game.turn_phase = BEGIN
+    game.turn_phase = Status.BEGIN
     return game.current_turn
