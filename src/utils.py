@@ -121,12 +121,21 @@ def shuffle_and_assign_positions(players) -> List[Player]:
         
     return players_list
 
-kind_list = [Kind.THETHING, Kind.INFECTION, Kind.ACTION, Kind.ACTION, Kind.ACTION, 
-             Kind.ACTION, Kind.ACTION, Kind.ACTION, Kind.ACTION, Kind.ACTION, 
-             Kind.OBSTACLE, Kind.ACTION, Kind.DEFENSE, Kind.DEFENSE, Kind.DEFENSE, 
-             Kind.DEFENSE, Kind.DEFENSE, Kind.OBSTACLE, Kind.PANIC, Kind.PANIC, 
-             Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, 
-             Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC, Kind.PANIC]
+kind_list = [Kind.THETHING, Kind.INFECTION, #1
+             Kind.ACTION, Kind.ACTION, Kind.ACTION, 
+             Kind.ACTION, Kind.ACTION, Kind.ACTION,
+             Kind.ACTION, Kind.ACTION, Kind.ACTION,
+             Kind.OBSTACLE, # 11
+             Kind.ACTION,
+             Kind.DEFENSE, Kind.DEFENSE, Kind.DEFENSE, 
+             Kind.DEFENSE, Kind.DEFENSE, #17
+             Kind.OBSTACLE,
+             Kind.PANIC, Kind.PANIC, 
+             Kind.PANIC, Kind.PANIC,
+             Kind.PANIC, Kind.PANIC,
+             Kind.PANIC, Kind.PANIC,
+             Kind.PANIC, Kind.PANIC,
+             Kind.PANIC, Kind.PANIC]
 
 # TODO: create separate deck without panic cards
 def get_card_deck(num_of_players : int):
