@@ -3,7 +3,7 @@ from schemas import GameOut, PlayerOut, GameInDB, PlayerInDB, CardOut, GameProgr
 from enumerations import CardName, Kind, Role
 from fastapi import HTTPException
 from pony.orm import select
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from play_card import playable_card, targeted_players, hand_to_list
 import random
 
@@ -257,12 +257,43 @@ def change_turn(game_id: int) -> int:
 
 def next_turn_player_name(game: Game) -> str:
     """Returns the name of the next turn player"""
+    # El predicado not p.is_dead no seria mas necesaria pues la posicion de los jugadores con ese status no son alcanzables por current_turn
     if game.current_turn == game.number_of_players - 1 and game.going_clockwise:
         player = select(p for p in game.players if p.position == 0 and not p.is_dead).first()
         return player.name
     elif game.going_clockwise:
         player = select(p for p in game.players if p.position == game.current_turn + 1 and not p.is_dead).first()
         return player.name
+    elif game.current_turn == 0 and not game.going_clockwise:
+        player = select(p for p in game.players if p.position == game.number_of_players - 1 and not p.is_dead).first()
+        return player.name
     else:
         player = select(p for p in game.players if p.position == game.current_turn - 1 and not p.is_dead).first()
         return player.name
+    
+def can_defend(card: Card, player: Player) -> bool:
+    """Returns true if player can defence himself from card"""
+    cards = [c.name for c in player.hand]
+    match card.name:
+        case CardName.SWAP_PLACES | CardName.YOU_BETTER_RUN:
+            return CardName.IM_OK_HERE in cards
+        case CardName.FLAMETHROWER:
+            return CardName.NO_BARBACUES in cards
+        
+def can_cancel_exchange(player: Player) -> bool:
+    """Returns true if player can cancel exchange"""
+    cards = [c.name for c in player.hand]
+    return any(cards) in [CardName.NO_THANKS, CardName.TERRIFYING, CardName.YOU_MISSED]
+
+def is_game_over(game: Game) -> bool:
+    """Returns if the game is over"""
+    #Los casos especiales son manejados por get_winners
+    #Caso 1: La cosa esta muerta
+    the_thing = select(p for p in game.players if p.role == Role.THING).first()
+    if (the_thing.is_dead):
+        return True
+    #Caso 2: No quedan humanos vivos
+    human_players = [p for p in game.players if p.role == Role.HUMAN]
+    if (not human_players):
+        return True
+    return False
