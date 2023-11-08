@@ -21,6 +21,10 @@ connection_manager = ConnectionManager()
 event_join = asyncio.Queue()
 
 GAMES_LIST_ID = 0
+SINGLE_ARGUMENT_CARDS = set([
+    "WHISKY",
+    "DETERMINATION"
+])
 
 def get_time():
     now = datetime.datetime.now()
@@ -250,20 +254,15 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
         game = utils.validate_game(id_gamex)
         player = utils.validate_player(id_player)
         card = utils.validate_card(id_card, id_player)
-
-        if card.name == CardName.WATCH_YOUR_BACK:
-            if not (id_player_afected is None):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="INVALID_PLAY"
-                )
-        else:
-            player_afected = utils.validate_player(id_player_afected)
+        if card.name not in SINGLE_ARGUMENT_CARDS:
+            player_afected = utils.validate_player(id_player_afected) # TODO: handle case where this is not needed
 
         if player.position != game.current_turn or game.turn_phase != Status.BEGIN:
+            detail_message = f"You cannot play a card, {player.name}." + "\n"
+            detail_message = detail_message + "Either it is not your turn, or not the right turn phase"
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="NOT_ON_TURN"
+                detail=detail_message
             )
 
         if card.kind != Kind.ACTION:
@@ -325,14 +324,26 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
 
         player_is_offering = player.position == game.current_turn
         player_is_responding = player.position == (game.current_turn + turn_shift) % game.number_of_players
+        player_is_target = player.id == game.current_target
+        
         phase_is_offer = game.turn_phase == Status.EXCHANGE_OFFER
-        phase_is_respond = game.turn_phase == Status.EXCHANGE_RESPONSE 
-        player_allowed = (player_is_offering and phase_is_offer) or (player_is_responding and phase_is_respond)
+        phase_is_respond = game.turn_phase == Status.EXCHANGE_RESPONSE
+        phase_is_seduction = game.turn_phase == Status.SEDUCTION_OFFER
+        phase_is_seduction_response = game.turn_phase == Status.SEDUCTION_RESPONSE
+        
+        right_conditions = [
+            (player_is_offering and phase_is_offer),
+            (player_is_responding and phase_is_respond),
+            (player_is_offering and phase_is_seduction),
+            (player_is_target and phase_is_seduction_response)
+        ]
 
-        if not player_allowed:
+        player_is_allowed = True in right_conditions
+
+        if not player_is_allowed:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Not your turn, {player.name}"
+                detail=f"It is not the time to offer a card exchange, {player.name}"
             )
         
         player_is_the_thing = player.role == Role.THING
@@ -354,9 +365,15 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
             await connection_manager.trigger_game_update(game_id)
             flush()
             return True
-            
-        if player_is_responding and phase_is_respond:
         
+        if player_is_offering and phase_is_seduction:
+            game.turn_phase = Status.SEDUCTION_RESPONSE
+            await connection_manager.trigger_game_update(game_id)
+            flush()
+            return True
+            
+        if player_is_responding and (phase_is_respond or phase_is_seduction_response):
+
             turn = game.current_turn
             exchanger = [p for p in game.players if p.position == turn].pop()
             responder = player
@@ -365,7 +382,7 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
             offer = [c for c in exchanger.hand if c.id == offer_id].pop()
 
             response = card
-            
+                
             exchanger.hand.add(response)
             responder.hand.add(offer)
             exchanger.hand.remove(offer)
@@ -373,19 +390,16 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
 
             if card.active_infection:
                 responder.role = Role.INFECTED
-            
+                
             utils.change_turn(game_id)
-            
+                
             game.turn_phase = Status.BEGIN
-            
+                
             await connection_manager.trigger_game_update(game_id)
-        
+            
             flush()
+
             return True
-        
-        HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="UNREACHABLE CODE")
 
 @app.get("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def retrieve_information(id_game: int, id_player:int, id_card: int) -> CardOut:

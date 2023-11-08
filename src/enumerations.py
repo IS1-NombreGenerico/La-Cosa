@@ -9,6 +9,8 @@ class Status(str, Enum):
     EXCHANGE_OFFER = "EXCHANGE_OFFER"
     EXCHANGE_RESPONSE = "EXCHANGE_RESPONSE"
     PLAY_EXCHANGE_DEFENSE = "PLAY_EXCHANGE_DEFENSE"
+    SEDUCTION_OFFER = "SEDUCTION_OFFER"
+    SEDUCTION_RESPONSE = "SEDUCTION_RESPONSE"
 
 class Kind(str, Enum):
     ACTION = "Acción"
@@ -24,7 +26,7 @@ class Role(str, Enum):
     INFECTED = "Infectado"
 
 class CardName(str, Enum):
-    THE_THING = 'La Cosa'
+    THE_THING = 'La Cosa' #0
     INFECTED = 'Infectado!'
     FLAMETHROWER = 'Lanzallamas'
     ANALYSIS = 'Análisis'
@@ -35,14 +37,14 @@ class CardName(str, Enum):
     SWAP_PLACES = 'Cambio de lugar!'
     WATCH_YOUR_BACK = 'Vigila tus espaldas'
     SEDUCTION = 'Seducción'
-    BARRED_DOOR = 'Puerta atrancada'
+    BARRED_DOOR = 'Puerta atrancada' # 11
     YOU_BETTER_RUN = 'Más vale que corras!'
-    IM_OK_HERE = 'Aquí estoy bien'
+    IM_OK_HERE = 'Aquí estoy bien' # 13
     TERRIFYING = "Aterrador"
     NO_THANKS = 'No, gracias...'
     YOU_MISSED = 'Fallaste!'
-    NO_BARBACUES = 'Nada de barbacoas!'
-    LOCKDOWN = 'Cuarentena'
+    NO_BARBACUES = 'Nada de barbacoas!' #17
+    LOCKDOWN = 'Cuarentena' #18
     FULL_DISCLOSURE = 'Revelaciones'
     ROTTEN_ROPES = 'Cuerdas podridas'
     GET_OUT = 'Sal de aquí!'

@@ -1,5 +1,5 @@
 from entities import Game, Player, Card
-from enumerations import CardName, Kind, Role
+from enumerations import CardName, Kind, Role, Status
 from typing import List, Tuple
 
 def playable_card(db_card: Card, db_player: Player) -> bool:
@@ -93,6 +93,13 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
 def play_watch_your_back(game: Game) -> None:
     """Play the watch your back card""" 
     game.going_clockwise = not game.going_clockwise
+
+def play_seduction(player: Player, target: Player) -> None:
+    '''
+    Play the seduction card
+    '''
+    player.game.turn_phase = Status.SEDUCTION_RESPONSE
+    player.game.current_target = target.id
 
 def play_swap_places(game: Game, player: Player, player_afected: Player):
     if ((player_afected.position == (player.position + 1) % game.number_of_players and not player_afected.left_barrier 
