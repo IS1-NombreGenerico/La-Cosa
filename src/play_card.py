@@ -103,7 +103,7 @@ def play_swap_places(game: Game, player: Player, player_afected: Player):
 
 def swap_places(player: Player, player_afected: Player) -> dict:
     """Play all the place swap cards"""
-    if player_afected.in_lockdown:
+    if not player_afected.in_lockdown:
         player.position, player_afected.position = player_afected.position, player.position
     return players_positions(player.game)
 
