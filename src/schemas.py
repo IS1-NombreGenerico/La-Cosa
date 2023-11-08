@@ -81,6 +81,7 @@ class GameInDB(BaseModel):
     number_of_players: int
     turn_phase: str
     current_target: int
+    game_over_status: str
 
 class CardOut(BaseModel):
     """Card information"""

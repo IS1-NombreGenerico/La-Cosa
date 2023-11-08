@@ -1,5 +1,5 @@
 from entities import Game, Player, Card
-from enumerations import CardName, Kind
+from enumerations import CardName, Kind, Role
 from typing import List, Tuple
 
 def playable_card(db_card: Card, db_player: Player) -> bool:
@@ -86,6 +86,9 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
         if player.position == game.current_turn:
             game.current_turn = turn
         player.position = turn
+    if player_afected.role == Role.THING:
+        game.is_done = True
+        game.game_over_status = Role.HUMAN
 
 def play_watch_your_back(game: Game) -> None:
     """Play the watch your back card""" 

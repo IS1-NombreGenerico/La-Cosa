@@ -60,7 +60,8 @@ def db_game_2_game_schema(db_game: Game, players) -> GameInDB:
             max_players=db_game.max_players,
             number_of_players=db_game.number_of_players,
             turn_phase=db_game.turn_phase,
-            current_target=db_game.current_target
+            current_target=db_game.current_target,
+            game_over_status=db_game.game_over_status
         )
 
 def db_card_2_card_out(db_card: Card, db_player: Player) -> CardOut:

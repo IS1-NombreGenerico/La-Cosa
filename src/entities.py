@@ -51,6 +51,7 @@ class Game(db.Entity):
     number_of_players = Required(int, default=1)
     turn_phase = Required(str, default="BEGIN") # TODO validate in schemas
     current_target = Required(int, default=-1) # TODO validate in schemas
+    game_over_status = Required(Role, default="RUNNING")
 
 db.bind(config.database, config.databasename, create_db=True)
 db.generate_mapping(create_tables=True)
