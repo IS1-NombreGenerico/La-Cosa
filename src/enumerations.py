@@ -27,27 +27,27 @@ class Role(str, Enum):
 
 class CardName(str, Enum):
     THE_THING = 'La Cosa' #0
-    INFECTED = 'Infectado!'
+    INFECTED = 'Infectado'
     FLAMETHROWER = 'Lanzallamas'
     ANALYSIS = 'Análisis'
     AXE = 'Hacha'
     SUSPICION = 'Sospecha'
     DETERMINATION = 'Determinación'
     WHISKY = 'Whisky'
-    SWAP_PLACES = 'Cambio de lugar!'
+    SWAP_PLACES = 'Cambio de lugar'
     WATCH_YOUR_BACK = 'Vigila tus espaldas'
     SEDUCTION = 'Seducción'
     BARRED_DOOR = 'Puerta atrancada' # 11
-    YOU_BETTER_RUN = 'Más vale que corras!'
+    YOU_BETTER_RUN = 'Más vale que corras'
     IM_OK_HERE = 'Aquí estoy bien' # 13
     TERRIFYING = "Aterrador"
     NO_THANKS = 'No, gracias...'
     YOU_MISSED = 'Fallaste!'
-    NO_BARBACUES = 'Nada de barbacoas!' #17
+    NO_BARBACUES = 'Nada de barbacoas' #17
     LOCKDOWN = 'Cuarentena' #18
     FULL_DISCLOSURE = 'Revelaciones'
     ROTTEN_ROPES = 'Cuerdas podridas'
-    GET_OUT = 'Sal de aquí!'
+    GET_OUT = 'Sal de aquí'
     FORGETFUL = 'Olvidadizo'
     ONE_TWO = 'Uno, dos...'
     THREE_FOUR = 'Tres, cuatro...'
