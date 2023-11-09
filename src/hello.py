@@ -284,13 +284,15 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
             if card.name == CardName.SWAP_PLACES:
                 mensaje = card_actions.play_swap_places(game, player, player_afected)
             if card.name == CardName.YOU_BETTER_RUN:
-                mensaje = card_actions.play_you_better_run(player ,player_afected)
+                mensaje = card_actions.play_you_better_run(game, player ,player_afected)
             if card.name == CardName.SEDUCTION:
                 mensaje = card_actions.play_seduction(player, player_afected)
             if card.name == CardName.ANALYSIS:
-                mensaje = card_actions.show_cards_to_player(player_afected)
+                mensaje = card_actions.show_cards_to_player(game, player_afected)
             if card.name == CardName.WHISKY:
-                mensaje = card_actions.show_cards_to_player(player)
+                mensaje = card_actions.show_cards_to_player(game, player)
+            if card.name == CardName.SUSPICION:
+                mensaje = card_actions.show_single_card_to_player(player, player_afected)
             else:
                 mensaje = f"A non existent card name was received when playing a card. Card name was -{card.name}-"
             
@@ -394,7 +396,10 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
             utils.change_turn(game_id)
                 
             game.turn_phase = Status.BEGIN
-                
+            for p in game.players:
+                if not p.reveals.is_empty():
+                    p.reveals.clear()
+
             await connection_manager.trigger_game_update(game_id)
             
             flush()
@@ -491,3 +496,10 @@ async def websocket_join(websocket: WebSocket):
             await asyncio.sleep(0.1)    
     except WebSocketDisconnect:
         connection_manager.disconnect(user_id)
+
+#Debug purposes
+"""
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+"""

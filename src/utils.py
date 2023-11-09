@@ -24,6 +24,7 @@ def db_player_2_player_schemas(db_player: Player) -> PlayerInDB:
         position=db_player.position, 
         role=db_player.role, 
         card=hand_to_list(db_player.hand),
+        reveals=hand_to_list(db_player.reveals),
         is_dead=db_player.is_dead, 
         in_lockdown=db_player.in_lockdown, 
         left_barrier=db_player.left_barrier, 

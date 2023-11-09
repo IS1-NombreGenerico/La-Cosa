@@ -108,18 +108,31 @@ def play_swap_places(game: Game, player: Player, player_afected: Player):
         not player_afected.right_barrier and not player.in_lockdown)):
         player.position, player_afected.position = player_afected.position, player.position
 
-def swap_places(player: Player, player_afected: Player) -> dict:
+def swap_places(game: Game, player: Player, player_afected: Player) -> dict:
     """Play all the place swap cards"""
     if not player_afected.in_lockdown:
         player.position, player_afected.position = player_afected.position, player.position
+        game.current_turn = player.position
     return players_positions(player.game)
 
-def show_cards_of_player(player: Player) -> dict:
+def show_cards_of_player(game: Game, player: Player) -> dict:
+    """Show the cards of the player"""
+    for p in game.players:
+        if p.id != player.id:
+            for c in player.hand:
+                p.reveals.add(c)
     mensaje = hand_to_list(List(player.hand))
     return {"hand to player": mensaje}
 
-def play_you_better_run(player: Player, player_afected: Player) -> dict:
-    return swap_places(player, player_afected)
+def show_single_card_to_player(player: Player, player_afected: Player) -> dict:
+    """Show one card of the player"""
+    card = player_afected.hand.random(1)
+    player.reveals.add(card)
+    card_name = card[:][0].name
+    return {"card to player": card_name}
+
+def play_you_better_run(game: Game, player: Player, player_afected: Player) -> dict:
+    return swap_places(game, player, player_afected)
 
 def play_change_cards(player: Player, player_afected: Player) -> None:
     """Play all the card exchange cards"""

@@ -15,6 +15,7 @@ class Card(db.Entity):
     player = Optional('Player', reverse="hand")
     required_players = Required(int, default=0)
     active_infection = Required(bool, default=False)
+    revealed = Set('Player')
 
 class Player(db.Entity):
     """Represent a Player in the database"""
@@ -32,6 +33,7 @@ class Player(db.Entity):
     exchange_offer = Required(int, default=-1) # Ponemos una de defensa si se requiere eso
     action = Required(int, default=-1) # Para settear la accion con un endpoint
     defense = Required(int, default=-1) # Para settear las defensas con un endpoint
+    reveals = Set(Card)
 
 class Game(db.Entity):
     """Represent a Game in the database"""

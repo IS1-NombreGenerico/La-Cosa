@@ -56,6 +56,7 @@ class PlayerInDB(BaseModel):
     game_id: int
     position: int
     card: List[Tuple[int, str]]
+    reveals: List[Tuple[int, str]]
     role: str
     is_dead: bool
     in_lockdown: bool
