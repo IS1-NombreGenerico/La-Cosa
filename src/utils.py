@@ -283,7 +283,11 @@ def game_data_sample(game : Game) -> GameInDB:
 def change_turn(game_id: int) -> int:
     """Changes the turn of the game and deals a card"""
     game = validate_game(game_id)
-    game.current_turn = (game.current_turn + 1) % game.number_of_players
+    if game.going_clockwise:
+        turn_shift = 1
+    else:
+        turn_shift = -1
+    game.current_turn = (game.current_turn + turn_shift) % game.number_of_players
     player = select(p for p in game.players if p.position == game.current_turn).first()
     draw_card(game, player)
     game.turn_phase = Status.BEGIN

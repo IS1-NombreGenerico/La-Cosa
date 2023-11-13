@@ -287,7 +287,7 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
                 mensaje = card_actions.play_watch_your_back(game)
                 print(f"{player.name} jugó vigila tus espaldas")
             if card.name == CardName.SWAP_PLACES:
-                mensaje = card_actions.play_swap_places(game, player, player_afected)
+                mensaje = card_actions.swap_places(game, player, player_afected)
                 print(f"{player.name} jugó cambio de lugar con {player_afected.name}")
             if card.name == CardName.YOU_BETTER_RUN:
                 mensaje = card_actions.play_you_better_run(game, player ,player_afected)
@@ -313,6 +313,7 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
                 turn_shift = 1
             else:
                 turn_shift = -1
+            flush()
             player_offering = [p for p in game.players if p.position == game.current_turn].pop()
             player_responding = [p for p in game.players if p.position == (game.current_turn + turn_shift) % game.number_of_players].pop()
             print(f"{player_offering.name} intercambia {player_responding.name} responde a intercambio")
@@ -476,6 +477,13 @@ async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
         print(f"{player.name} descartó una carta")
         game.turn_phase = Status.EXCHANGE_OFFER
         flush()
+        if game.going_clockwise:
+            turn_shift = 1
+        else:
+            turn_shift = -1
+        player_offering = [p for p in game.players if p.position == game.current_turn].pop()
+        player_responding = [p for p in game.players if p.position == (game.current_turn + turn_shift) % game.number_of_players].pop()
+        print(f"{player_offering.name} intercambia {player_responding.name} responde a intercambio")
         await connection_manager.trigger_game_update(id_game)
         return True
 
