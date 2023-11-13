@@ -237,6 +237,8 @@ async def start_game(id_game: int, id_player: int, id_user: int) -> dict:
         utils.deal_cards(game.id)
         utils.change_turn(game.id)
         flush()
+        player_turn = select(p for p in game.players if p.position == game.current_turn).first()
+        print(f"Turno de {player_turn.name}")
         for user in connection_manager.game_to_users[id_game]:
             await connection_manager.move_user(id_user, id_game, id_game, PLAY)
         await connection_manager.broadcast(GAMES_LIST_ID, f"{PULL_GAMES} {get_time()}")
@@ -280,26 +282,40 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
 
             if card.name == CardName.FLAMETHROWER:
                 mensaje = card_actions.play_flamethrower(game, player_afected)
+                print(f"{player.name} jugó lanzallamas sobre {player_afected.name}")
             if card.name == CardName.WATCH_YOUR_BACK:
                 mensaje = card_actions.play_watch_your_back(game)
+                print(f"{player.name} jugó vigila tus espaldas")
             if card.name == CardName.SWAP_PLACES:
                 mensaje = card_actions.play_swap_places(game, player, player_afected)
+                print(f"{player.name} jugó cambio de lugar con {player_afected.name}")
             if card.name == CardName.YOU_BETTER_RUN:
                 mensaje = card_actions.play_you_better_run(game, player ,player_afected)
+                print(f"{player.name} jugó mejor que corras con {player_afected.name}")
             if card.name == CardName.SEDUCTION:
                 mensaje = card_actions.play_seduction(player, player_afected)
             if card.name == CardName.ANALYSIS:
                 mensaje = card_actions.show_cards_of_player(game, player_afected)
+                print(f"{player.name} jugó analisis sobre {player_afected.name}")
             if card.name == CardName.WHISKY:
                 mensaje = card_actions.show_cards_of_player(game, player)
+                print(f"{player.name} jugó whiskey")
             if card.name == CardName.SUSPICION:
                 mensaje = card_actions.show_single_card_to_player(player, player_afected)
+                print(f"{player.name} jugó sospecha sobre {player_afected.name}")
             else:
                 mensaje = f"A non existent card name was received when playing a card. Card name was -{card.name}-"
 
             utils.discard_card(game, player, card)
             #se hace acá para primer probar la funcionalidad sin intercamio de cartas
             game.turn_phase = Status.EXCHANGE_OFFER
+            if game.going_clockwise:
+                turn_shift = 1
+            else:
+                turn_shift = -1
+            player_offering = [p for p in game.players if p.position == game.current_turn].pop()
+            player_responding = [p for p in game.players if p.position == (game.current_turn + turn_shift) % game.number_of_players].pop()
+            print(f"{player_offering.name} intercambia {player_responding.name} responde a intercambio")
             # broadcast updated game state
             await connection_manager.trigger_game_update(id_gamex)
             utils.db_game_2_game_progress(game)
@@ -408,7 +424,8 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
                 return True
 
             utils.change_turn(game_id)
-
+            player_turn = select(p for p in game.players if p.position == game.current_turn).first()
+            print(f"Turno de {player_turn.name}")
             game.turn_phase = Status.BEGIN
             for p in game.players:
                 if not p.reveals.is_empty():
@@ -456,6 +473,7 @@ async def discard_card(id_game: int, id_player:int, id_card: int) -> bool:
                 )
 
         utils.discard_card(game, player, card)
+        print(f"{player.name} descartó una carta")
         game.turn_phase = Status.EXCHANGE_OFFER
         flush()
         await connection_manager.trigger_game_update(id_game)

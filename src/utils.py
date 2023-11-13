@@ -287,14 +287,10 @@ def change_turn(game_id: int) -> int:
     player = select(p for p in game.players if p.position == game.current_turn).first()
     draw_card(game, player)
     game.turn_phase = Status.BEGIN
-    for p in game.players:
-        print(f"{p.name} es {p.role} en {p.position}")
     return game.current_turn
 
 def check_full_infection(game: Game) -> bool:
     alive_players = [p for p in game.players if not p.is_dead and p.role != Role.THING]
-    for p in alive_players:
-        print(f"{p.name} es {p.role}")
     for p in alive_players:
         if p.role == Role.HUMAN:
             return False
