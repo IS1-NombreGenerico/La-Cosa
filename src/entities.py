@@ -37,7 +37,7 @@ class Player(db.Entity):
 
 class Game(db.Entity):
     """Represent a Game in the database"""
-    id = PrimaryKey(int, auto=True) 
+    id = PrimaryKey(int, auto=True)
     name = Required(str)
     host = Required(Player, reverse="host")
     players = Set(Player)

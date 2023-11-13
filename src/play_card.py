@@ -72,7 +72,7 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
 
     #Set dead status
     player_afected.is_dead = True
-    player_afected.position = -(player_afected.position)
+    player_afected.position = -1
     #Discard his hand
     for c in player_afected.hand:
         game.discarded.add(c)
@@ -88,6 +88,9 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
     if player_afected.role == Role.THING:
         game.is_done = True
         game.game_over_status = Role.HUMAN
+    if game.number_of_players == 1:
+        game.is_done = True
+        game.game_over_status = Role.THING
 
 def play_watch_your_back(game: Game) -> None:
     """Play the watch your back card"""

@@ -386,14 +386,26 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
             offer = [c for c in exchanger.hand if c.id == offer_id].pop()
 
             response = card
-
             exchanger.hand.add(response)
             responder.hand.add(offer)
             exchanger.hand.remove(offer)
             responder.hand.remove(response)
 
+            if (exchanger.role == Role.THING and offer.name == CardName.INFECTED):
+                responder.role = Role.INFECTED
+            elif(responder.role == Role.THING and response.name == CardName.INFECTED):
+                exchanger.role == Role.INFECTED
+
             if card.active_infection:
                 responder.role = Role.INFECTED
+
+            if utils.check_full_infection(game):
+                print("Todos los jugadores estan infectados")
+                game.is_done = True
+                game.game_over_status = Role.THING
+                flush()
+                await connection_manager.trigger_game_update(game_id)
+                return True
 
             utils.change_turn(game_id)
 

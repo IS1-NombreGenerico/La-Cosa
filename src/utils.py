@@ -18,22 +18,22 @@ def db_player_2_player_out(db_player: Player) -> PlayerOut:
 def db_player_2_player_schemas(db_player: Player) -> PlayerInDB:
     """Converts a Player object from the database to a PlayerInDB object"""
     return PlayerInDB(
-        player_id=db_player.id, 
-        name=db_player.name, 
+        player_id=db_player.id,
+        name=db_player.name,
         game_id=db_player.game.id,
-        position=db_player.position, 
-        role=db_player.role, 
+        position=db_player.position,
+        role=db_player.role,
         card=hand_to_list(db_player.hand),
         reveals=hand_to_list(db_player.reveals),
-        is_dead=db_player.is_dead, 
-        in_lockdown=db_player.in_lockdown, 
-        left_barrier=db_player.left_barrier, 
+        is_dead=db_player.is_dead,
+        in_lockdown=db_player.in_lockdown,
+        left_barrier=db_player.left_barrier,
         right_barrier=db_player.right_barrier,
         exchange_offer=db_player.exchange_offer,
         action=db_player.action,
         defense=db_player.defense
         )
-        
+
 def db_game_2_game_out(db_game: Game) -> GameOut:
     """Converts a Game object from the database to a GameOut object"""
     return GameOut(
@@ -116,22 +116,22 @@ def shuffle_and_assign_positions(players) -> List[Player]:
     """Shuffles the players and assigns them a position"""
     players_list = list(players)
     random.shuffle(players_list)
-    
+
     for num, player in enumerate(players_list, start=0):
         player.position = num
-        
+
     return players_list
 
 kind_list = [Kind.THETHING, Kind.INFECTION, #1
-             Kind.ACTION, Kind.ACTION, Kind.ACTION, 
+             Kind.ACTION, Kind.ACTION, Kind.ACTION,
              Kind.ACTION, Kind.ACTION, Kind.ACTION,
              Kind.ACTION, Kind.ACTION, Kind.ACTION,
              Kind.OBSTACLE, # 11
              Kind.ACTION,
-             Kind.DEFENSE, Kind.DEFENSE, Kind.DEFENSE, 
+             Kind.DEFENSE, Kind.DEFENSE, Kind.DEFENSE,
              Kind.DEFENSE, Kind.DEFENSE, #17
              Kind.OBSTACLE,
-             Kind.PANIC, Kind.PANIC, 
+             Kind.PANIC, Kind.PANIC,
              Kind.PANIC, Kind.PANIC,
              Kind.PANIC, Kind.PANIC,
              Kind.PANIC, Kind.PANIC,
@@ -165,7 +165,7 @@ def get_card_deck(num_of_players : int):
         11: [1, 20, 5, 3, 2, 8, 7, 3, 5, 2, 7, 3, 5, 3, 4, 4, 3, 3, 2, 2, 1, 2, 3, 3, 3, 3, 2, 3, 2, 2, 1],
         12: [1, 20, 5, 3, 2, 8, 7, 3, 5, 2, 7, 3, 5, 3, 4, 4, 3, 3, 2, 2, 1, 2, 3, 3, 3, 3, 2, 3, 2, 2, 1]
     }
-    
+
     return limited_deck_mapping[num_of_players]
 
 def create_deck(id_game : int):
@@ -177,7 +177,7 @@ def create_deck(id_game : int):
     for card, cantidad, kind in zip(CardName, list_deck, kind_list):
         for i in range(cantidad):
             c = Card(
-                name = card, 
+                name = card,
                 kind = kind,
             )
             game.deck.add(c)
@@ -234,12 +234,12 @@ def exchange_card(player1: Player, player2: Player, cardp1: Card, cardp2: Card) 
 def deal_cards(game_id: int):
     game = validate_game(game_id)
     cards_set = set(game.deck)
-    
+
     card_theThing = select(card for card in Card if card.name == "La Cosa" and card.game_deck == game).first()
 
     eligible_kinds = {"Acción", "Defensa"}
     cards_assigned = set()
-    
+
     for player in game.players:
         for _ in range(4):
             valid_cards = [card for card in cards_set if card.kind in eligible_kinds and card not in cards_assigned]
@@ -287,4 +287,15 @@ def change_turn(game_id: int) -> int:
     player = select(p for p in game.players if p.position == game.current_turn).first()
     draw_card(game, player)
     game.turn_phase = Status.BEGIN
+    for p in game.players:
+        print(f"{p.name} es {p.role} en {p.position}")
     return game.current_turn
+
+def check_full_infection(game: Game) -> bool:
+    alive_players = [p for p in game.players if not p.is_dead and p.role != Role.THING]
+    for p in alive_players:
+        print(f"{p.name} es {p.role}")
+    for p in alive_players:
+        if p.role == Role.HUMAN:
+            return False
+    return True
