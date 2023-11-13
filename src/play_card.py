@@ -4,14 +4,14 @@ from typing import List, Tuple
 
 def playable_card(db_card: Card, db_player: Player) -> bool:
     """Returns if the card is playable"""
-    
+
     return db_card.player.id == db_player.id and db_card.kind == Kind.ACTION
 
 def targeted_players(db_card: Card, db_player: Player) -> List[Player]:
     """Returns the players that can be targeted"""
     if playable_card(db_card, db_player) == False:
         return []
-    
+
     match db_card.name:
         case CardName.FLAMETHROWER:
             return [
@@ -28,7 +28,6 @@ def targeted_players(db_card: Card, db_player: Player) -> List[Player]:
                     if p.id != db_player.id and not p.in_lockdown and not p.is_dead and
                     (p.position == ((db_player.position + 1) % db_player.game.number_of_players and not p.left_barrier) or
                     p.position == ((db_player.position - 1) % db_player.game.number_of_players and not p.right_barrier))
-                        
             ]
         case CardName.AXE:
             return [
@@ -52,7 +51,7 @@ def targeted_players(db_card: Card, db_player: Player) -> List[Player]:
                     if p.id != db_player.id and not p.is_dead and
                     p.position == ((db_player.position + 1) % db_player.game.number_of_players) or
                     p.position == ((db_player.position - 1) % db_player.game.number_of_players)
-                ]            
+                ]
         case _:
             return []
 
@@ -70,7 +69,7 @@ def implemented_card(card: Card) -> bool:
 
 def play_flamethrower(game: Game, player_afected: Player) -> None:
     """Plays the flamethrower card"""
-    
+
     #Set dead status
     player_afected.is_dead = True
     player_afected.position = -(player_afected.position)
@@ -91,7 +90,7 @@ def play_flamethrower(game: Game, player_afected: Player) -> None:
         game.game_over_status = Role.HUMAN
 
 def play_watch_your_back(game: Game) -> None:
-    """Play the watch your back card""" 
+    """Play the watch your back card"""
     game.going_clockwise = not game.going_clockwise
 
 def play_seduction(player: Player, target: Player) -> None:
@@ -102,16 +101,18 @@ def play_seduction(player: Player, target: Player) -> None:
     player.game.current_target = target.id
 
 def play_swap_places(game: Game, player: Player, player_afected: Player):
-    if ((player_afected.position == (player.position + 1) % game.number_of_players and not player_afected.left_barrier 
-        and not player.in_lockdown) or 
-        (player_afected.position == (player.position - 1) % game.number_of_players and 
+    if ((player_afected.position == (player.position + 1) % game.number_of_players and not player_afected.left_barrier
+        and not player.in_lockdown) or
+        (player_afected.position == (player.position - 1) % game.number_of_players and
         not player_afected.right_barrier and not player.in_lockdown)):
         player.position, player_afected.position = player_afected.position, player.position
 
 def swap_places(game: Game, player: Player, player_afected: Player) -> dict:
     """Play all the place swap cards"""
     if not player_afected.in_lockdown:
-        player.position, player_afected.position = player_afected.position, player.position
+        temp_pos = player.position
+        player.position = player_afected.position
+        player_afected.position = temp_pos
         game.current_turn = player.position
     return players_positions(player.game)
 
@@ -121,7 +122,7 @@ def show_cards_of_player(game: Game, player: Player) -> dict:
         if p.id != player.id:
             for c in player.hand:
                 p.reveals.add(c)
-    mensaje = hand_to_list(List(player.hand))
+    mensaje = hand_to_list(list(player.hand))
     return {"hand to player": mensaje}
 
 def show_single_card_to_player(player: Player, player_afected: Player) -> dict:

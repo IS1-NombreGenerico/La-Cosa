@@ -9,6 +9,7 @@ from enumerations import Role, Kind, CardName, Status
 from connection_manager import ConnectionManager
 from schemas import CreateGameIn, CreateGameResponse, GameOut, PlayerIn, PlayerId, PlayerOut, GameInDB, PlayerInDB, GameProgress, CardOut
 from messages import *
+from chat import Messages
 
 import utils
 import play_card as card_actions
@@ -17,7 +18,7 @@ import asyncio
 app = FastAPI()
 
 connection_manager = ConnectionManager()
-
+chat = Messages()
 event_join = asyncio.Queue()
 
 GAMES_LIST_ID = 0
@@ -65,10 +66,10 @@ async def create_game(user_id: int, form: CreateGameIn) -> CreateGameResponse:
             detail="INVALID_SETTINGS"
         )
         response = CreateGameResponse(id=game.id, host_id=game.host.id)
-        
+
         # update connection manager
         await connection_manager.move_user(user_id, GAMES_LIST_ID, game.id, START)
-        
+
     return response
 
 #HAY QUE VER SI ESTE ENDPOINT SIGUE SIEDO REALMENTE NECESARIO
@@ -82,7 +83,7 @@ async def retrieve_availables_games() -> List[GameOut]:
     """
     with db_session:
         games = utils.obtain_games_available()
-    
+
     return games
 
 @app.post("/join/{game_id}/{user_id}", status_code=status.HTTP_201_CREATED)
@@ -91,7 +92,7 @@ async def join_game(game_id: int, user_id: int, player_info: PlayerIn) -> Player
     Input: PlayerIn
         Information about the player and game (player name, game password)
     -------
-    Output: PlayerId   
+    Output: PlayerId
         Information about the player (id)
     """
     if not player_info.player_name:
@@ -101,7 +102,7 @@ async def join_game(game_id: int, user_id: int, player_info: PlayerIn) -> Player
         )
 
     with db_session:
-        
+
         # Get the relevant game
         db_game = utils.validate_game(game_id)
 
@@ -127,7 +128,7 @@ async def join_game(game_id: int, user_id: int, player_info: PlayerIn) -> Player
         db_game.players.add(p)
         db_game.number_of_players += 1
         flush()
-        
+
         # Update connection manager
         await connection_manager.move_user(user_id, GAMES_LIST_ID, game_id, START)
 
@@ -138,12 +139,12 @@ async def join_game(game_id: int, user_id: int, player_info: PlayerIn) -> Player
         await connection_manager.connect(game_id, websocket)
         #acá se agregaría la lógica de agregar un identificador juego-jugador
         p = Player(name = player_info.player_name, game = db_game, position = db_game.number_of_players)
-        
+
         db_game.players.add(p)
         db_game.number_of_players += 1
         flush()
         await connection_manager.send_lobby_info(game_id, utils.game_data_sample(db_game))
-        
+
         response = PlayerId(id=p.id)
         ''' # TODO: Mejor hacer esto en START
 
@@ -165,7 +166,7 @@ async def leave_game(id_game: int, id_player: int, id_user: int) -> dict:
             # update connection manager
             for user in connection_manager.game_to_users[id_game]:
                 await connection_manager.move_user(user, id_game, GAMES_LIST_ID, JOIN)
-            
+
             # return response
 
             return {"message": f"Game {id_game} Deleted"}
@@ -216,7 +217,7 @@ async def start_game(id_game: int, id_player: int, id_user: int) -> dict:
     with db_session:
         player = utils.validate_player(id_player)
         game = utils.validate_game(id_game)
-        
+
         if game.number_of_players < game.min_players:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -228,7 +229,7 @@ async def start_game(id_game: int, id_player: int, id_user: int) -> dict:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_ACTION"
             )
-        
+
         game.in_game = True
 
         utils.shuffle_and_assign_positions(game.players)
@@ -244,7 +245,7 @@ async def start_game(id_game: int, id_player: int, id_user: int) -> dict:
 @app.patch("/{id_gamex}/{id_player}/{id_card}/{id_player_afected}", status_code=status.HTTP_200_OK)
 async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afected: int) -> dict:
     """Plays a card
-    Input: 
+    Input:
         id_player_afected
     ---------
     Output: GameProgress
@@ -270,13 +271,13 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_PLAY"
             )
-            
+
         # TODO
         target_has_defense = False
         card_is_autoplay = True
-            
+
         if (not target_has_defense) or card_is_autoplay:
-        
+
             if card.name == CardName.FLAMETHROWER:
                 mensaje = card_actions.play_flamethrower(game, player_afected)
             if card.name == CardName.WATCH_YOUR_BACK:
@@ -288,14 +289,14 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
             if card.name == CardName.SEDUCTION:
                 mensaje = card_actions.play_seduction(player, player_afected)
             if card.name == CardName.ANALYSIS:
-                mensaje = card_actions.show_cards_to_player(game, player_afected)
+                mensaje = card_actions.show_cards_of_player(game, player_afected)
             if card.name == CardName.WHISKY:
-                mensaje = card_actions.show_cards_to_player(game, player)
+                mensaje = card_actions.show_cards_of_player(game, player)
             if card.name == CardName.SUSPICION:
                 mensaje = card_actions.show_single_card_to_player(player, player_afected)
             else:
                 mensaje = f"A non existent card name was received when playing a card. Card name was -{card.name}-"
-            
+
             utils.discard_card(game, player, card)
             #se hace acá para primer probar la funcionalidad sin intercamio de cartas
             game.turn_phase = Status.EXCHANGE_OFFER
@@ -304,11 +305,12 @@ async def play_card(id_gamex: int, id_player: int, id_card: int, id_player_afect
             utils.db_game_2_game_progress(game)
             return {"game_progress": utils.db_game_2_game_progress(game),
                     "message": mensaje}
-                    
+
         # TODO
         if target_has_defense:
-            # set player.action
-            # change turn phase
+            player.action = card.id
+            player_afected.status = Status.ACTION_DEFENSE_REQUEST
+            await connection_manager.trigger_game_update(id_gamex)
             pass
 
 @app.patch("/exchange/choose/card/{game_id}/{player_id}/{card_id}", status_code=status.HTTP_200_OK)
@@ -327,12 +329,12 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
         player_is_offering = player.position == game.current_turn
         player_is_responding = player.position == (game.current_turn + turn_shift) % game.number_of_players
         player_is_target = player.id == game.current_target
-        
+
         phase_is_offer = game.turn_phase == Status.EXCHANGE_OFFER
         phase_is_respond = game.turn_phase == Status.EXCHANGE_RESPONSE
         phase_is_seduction = game.turn_phase == Status.SEDUCTION_OFFER
         phase_is_seduction_response = game.turn_phase == Status.SEDUCTION_RESPONSE
-        
+
         right_conditions = [
             (player_is_offering and phase_is_offer),
             (player_is_responding and phase_is_respond),
@@ -347,44 +349,44 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"It is not the time to offer a card exchange, {player.name}"
             )
-        
+
         player_is_the_thing = player.role == Role.THING
         infection = card.name == CardName.INFECTED
-        
+
         if infection and not player_is_the_thing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Only the thing can exchange infection cards, {player.name}"
             )
-        
+
         if infection:
             card.active_infection = True
-        
+
         player.exchange_offer = card_id
-        
+
         if player_is_offering and phase_is_offer:
             game.turn_phase = Status.EXCHANGE_RESPONSE
             await connection_manager.trigger_game_update(game_id)
             flush()
             return True
-        
+
         if player_is_offering and phase_is_seduction:
             game.turn_phase = Status.SEDUCTION_RESPONSE
             await connection_manager.trigger_game_update(game_id)
             flush()
             return True
-            
+
         if player_is_responding and (phase_is_respond or phase_is_seduction_response):
 
             turn = game.current_turn
             exchanger = [p for p in game.players if p.position == turn].pop()
             responder = player
-            
+
             offer_id = exchanger.exchange_offer
             offer = [c for c in exchanger.hand if c.id == offer_id].pop()
 
             response = card
-                
+
             exchanger.hand.add(response)
             responder.hand.add(offer)
             exchanger.hand.remove(offer)
@@ -392,16 +394,16 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
 
             if card.active_infection:
                 responder.role = Role.INFECTED
-                
+
             utils.change_turn(game_id)
-                
+
             game.turn_phase = Status.BEGIN
             for p in game.players:
                 if not p.reveals.is_empty():
                     p.reveals.clear()
 
             await connection_manager.trigger_game_update(game_id)
-            
+
             flush()
 
             return True
@@ -409,7 +411,7 @@ async def exchange_offer(game_id: int, player_id: int, card_id: int) -> bool:
 @app.get("/{id_game}/{id_player}/{id_card}", status_code=status.HTTP_200_OK)
 async def retrieve_information(id_game: int, id_player:int, id_card: int) -> CardOut:
     """Returns information about a card
-    Input: 
+    Input:
     ---------
     Output: CardOut
         Information about the card
@@ -471,7 +473,7 @@ async def finish_game(id_game: int) -> dict:
         #await connection_manager.send_lobby_info(id_game, utils.game_data_sample(game))
         #await connection_manager.remove_all_connection_of_game(id_game)
     return response
-    
+
 # TODO: frontend must allow players to set as defenses only the relevant cards
 # TODO: when executing the effect of an interaction, some defenses have to be removed,
 # and some do not
@@ -493,9 +495,23 @@ async def websocket_join(websocket: WebSocket):
     connection_manager.game_to_users[GAMES_LIST_ID].append(user_id)
     try:
         while True:
-            await asyncio.sleep(0.1)    
+            await asyncio.sleep(0.1)
     except WebSocketDisconnect:
         connection_manager.disconnect(user_id)
+
+@app.websocket("/chat")
+async def websocket_endpoint(websocket: WebSocket):
+    await connection_manager.connect(0, websocket)
+    while True:
+        try:
+            sender = await connection_manager.get_chat_sender(websocket)
+            await connection_manager.broadcast_chat_message(sender, chat.last())
+            data = await websocket.receive_text()
+            if data:
+                chat.append(data)
+        except WebSocketDisconnect:
+            await connection_manager.disconnect(0, websocket)
+            break
 
 #Debug purposes
 """
